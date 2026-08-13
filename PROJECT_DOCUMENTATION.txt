@@ -1,0 +1,561 @@
+SEO ARTICLE PUBLISHING PORTAL - PROJECT DOCUMENTATION
+
+1. PROJECT OVERVIEW
+
+SEO is a MERN based article publishing portal. Users can register, choose publication
+packages, pay online, write article content, submit articles for review, view payment
+history, and download PDFs. Admin users can manage packages, review articles, update
+article status, see dashboard statistics, and download article/payment PDFs.
+
+The project has two main parts:
+
+Backend:
+SEO-ArticlePublishPortal/Backend
+
+Frontend:
+SEO-ArticlePublishPortal/seo-app
+
+
+2. TECHNOLOGY STACK
+
+Backend technologies:
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT authentication
+- bcryptjs password hashing
+- Razorpay payment gateway
+- PDFKit PDF generation
+- Helmet security middleware
+- CORS
+
+Frontend technologies:
+- React
+- Vite
+- React Router
+- Axios
+- Tailwind CSS
+- React Hot Toast
+- Lucide React icons
+
+
+3. BACKEND STRUCTURE
+
+Backend source folder:
+Backend/SRC
+
+Important backend folders:
+- config: database and environment configuration
+- controllers: request handling logic
+- middlewares: authentication, role authorization, and error handling
+- Models: MongoDB/Mongoose schemas
+- routes: API route definitions
+- services: helper services such as PDF generation
+
+Main backend entry file:
+Backend/SRC/index.js
+
+Backend run command:
+cd SEO-ArticlePublishPortal/Backend
+npm.cmd run dev
+
+Backend default API URL:
+http://localhost:5000/api
+
+Health check:
+GET /api/health
+
+
+4. BACKEND ENVIRONMENT
+
+The backend needs environment variables for MongoDB, JWT, frontend URL, and Razorpay.
+
+Common environment variables:
+
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/seo
+CLIENT_URL=http://localhost:5173
+JWT_SECRET=your_access_token_secret
+JWT_REFRESH_SECRET=your_refresh_token_secret
+RAZORPAY_KEY_ID=your_razorpay_key
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+
+
+5. BACKEND MODELS
+
+User model:
+Stores registered users and admins.
+
+Main fields:
+- name
+- email
+- phone
+- password
+- role: user or admin
+- isActive
+- createdAt
+- updatedAt
+
+Article model:
+Stores article submissions. One article document represents one article submission
+for one selected package.
+
+Main fields:
+- articleId
+- userId
+- packageId
+- packagePrice
+- currency
+- paymentId
+- author
+- category
+- articleTitle
+- keywords
+- abstract
+- content
+- imageUrl
+- resourceLink
+- status
+- submittedAt
+- paymentStatus
+- createdAt
+- updatedAt
+
+Article status values:
+- draft
+- payment_pending
+- writing
+- submitted
+- under_review
+- accepted
+- rejected
+
+Frontend status display:
+- writing: Draft Article
+- submitted: Submitted
+- under_review: Under Processing
+- accepted: Published
+- rejected: Failed
+
+Package model:
+Stores admin-created publication packages.
+
+Main fields:
+- packageId
+- packageName
+- category
+- mediaCoverage
+- costPrice
+- margin
+- marginCategory
+- price
+- currency
+- isActive
+- createdBy
+- updatedBy
+- createdAt
+- updatedAt
+
+Package price is calculated on the backend from costPrice, margin, and marginCategory.
+The frontend does not decide the final package price.
+
+Payment model:
+Stores Razorpay payment information.
+
+Main fields:
+- userId
+- articleIds
+- packageSummary
+- razorpayOrderId
+- razorpayPaymentId
+- razorpaySignature
+- amount
+- currency
+- status
+- paidAt
+- createdAt
+- updatedAt
+
+Payment status values:
+- created
+- paid
+- failed
+- refunded
+
+
+6. BACKEND API ROUTES
+
+Auth APIs:
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/refresh-token
+- GET /api/auth/me
+
+Article APIs:
+- POST /api/articles
+- GET /api/articles/my
+- GET /api/articles/:articleId
+- PUT /api/articles/:articleId
+- POST /api/articles/:articleId/submit
+
+Public package API:
+- GET /api/packages
+
+Payment APIs:
+- POST /api/payments/create-order
+- POST /api/payments/verify
+- GET /api/payments/history
+
+Admin APIs:
+- GET /api/admin/stats
+- GET /api/admin/packages
+- POST /api/admin/packages
+- PUT /api/admin/packages/:packageId
+- PATCH /api/admin/packages/:packageId/availability
+- DELETE /api/admin/packages/:packageId
+- GET /api/admin/articles
+- GET /api/admin/articles/:articleId
+- PATCH /api/admin/articles/:articleId/status
+- GET /api/admin/articles/:articleId/payment
+- GET /api/admin/articles/:articleId/pdf
+
+PDF APIs:
+- GET /api/pdfs/article/:articleId
+- GET /api/pdfs/payment/:articleId
+- GET /api/pdfs/payment-record/:paymentId
+
+
+7. BACKEND WORKFLOW
+
+Registration and login:
+User registers or logs in through the auth APIs. Passwords are hashed with bcryptjs.
+JWT tokens are used for protected routes.
+
+Article creation:
+User selects publication packages and article quantity. The backend creates article
+records for the selected package items. Admin users are not allowed to create new
+articles from the frontend flow.
+
+Payment:
+The frontend sends selected article IDs to create a Razorpay order. The backend
+calculates the total amount from saved article package prices. After successful
+Razorpay verification, the payment becomes paid and the related articles move to
+writing status.
+
+Writing:
+After payment, the user can open the article workspace and add title, keywords,
+abstract, image, resource link, and content.
+
+Submission:
+When the user submits the article, the status changes to submitted.
+
+Admin review:
+Admin can change article status to Under Processing, Published, or Failed.
+Internally these statuses are saved as under_review, accepted, or rejected.
+
+PDF generation:
+PDFs are generated using PDFKit. Article PDFs and payment PDFs are available for
+download.
+
+
+8. FRONTEND STRUCTURE
+
+Frontend source folder:
+inkwell-app/src
+
+Important frontend folders:
+- components: shared UI and layout components
+- context: AuthContext and ThemeContext
+- features: feature exports for auth, articles, admin, and dashboard
+- lib: Axios API setup
+- pages: main route pages
+- services: API service wrappers
+- shared: shared exports
+
+Main frontend file:
+inkwell-app/src/App.jsx
+
+Frontend run command:
+cd Inkwell-ArticlePublishPortal/inkwell-app
+npm.cmd run dev
+
+Frontend build command:
+cd Inkwell-ArticlePublishPortal/inkwell-app
+npm.cmd run build
+
+
+9. FRONTEND ROUTES
+
+Main routes:
+- /login
+- /register
+- /dashboard
+- /articles/new
+- /articles/drafts
+- /articles/my
+- /articles/:articleId
+- /checkout
+- /payments
+- /admin/review
+- /admin/packages
+
+Admin redirects:
+- /admin redirects to /dashboard
+- /admin/dashboard redirects to /dashboard
+
+
+10. FRONTEND AUTHENTICATION
+
+Authentication is managed by AuthContext.
+
+Token storage keys:
+- inkwell_access_token
+- inkwell_refresh_token
+
+Protected routes require a logged-in user.
+Admin-only routes require user.role to be admin.
+
+Login and register pages are displayed in centered cards with red border styling,
+light glow hover effect, input ring focus effect, password show/hide, and confirm
+password validation on register.
+
+
+11. FRONTEND LAYOUT
+
+The logged-in application uses AppShell.
+
+Desktop layout:
+- Fixed sidebar
+- Sidebar items do not scroll separately
+- Theme switch, user details, and sign out button are at the bottom
+
+Mobile layout:
+- Dropdown/hamburger navbar
+- Responsive navigation for user and admin pages
+
+Admin sidebar/navbar items:
+- Dashboard
+- Review desk
+- Packages & pricing
+- Payment history
+
+User sidebar/navbar items:
+- Dashboard
+- My articles
+- Draft articles
+- New article
+- Payment history
+
+
+12. USER FEATURES
+
+User dashboard:
+Shows article counts for the logged-in user.
+
+Dashboard cards include:
+- My articles count
+- Draft articles count
+- Published articles count
+
+New Article:
+Users enter author information, choose packages, and enter article quantity in a
+separate quantity box. Package cards are shown in list view with checkboxes and a
+down-arrow details button.
+
+Checkout:
+Users pay for selected article/package items through Razorpay.
+
+Draft Articles:
+Shows articles that are not fully submitted yet, including writing and payment
+pending articles.
+
+My Articles:
+Shows submitted, under processing, published, and failed articles. It includes
+status display and article PDF download.
+
+Article Workspace:
+Users write article content after payment.
+
+Fields include:
+- Article title
+- Keywords
+- Abstract
+- Image upload
+- Reference/resource link
+- Article content
+
+Payment History:
+Shows user payments in list view.
+
+Payment list includes:
+- Payment ID
+- Date and time
+- Article quantity
+- Package summary
+- View button
+- Download PDF button
+
+Payment history supports filtering by Payment ID.
+
+
+13. ADMIN FEATURES
+
+Dashboard:
+Admin dashboard statistics are shown on /dashboard.
+
+Admin dashboard cards include:
+- All article count
+- Published article count
+- Submitted article count
+- All users count
+- Pending payment count
+- Article writing count
+
+Review Desk:
+Admin can view articles, filter articles, view details, download PDFs, and update
+article status.
+
+Review Desk filters:
+- Article ID
+- Author name
+- Single submission date
+- Article status dropdown
+
+Default status filter:
+submitted
+
+Admin status options:
+- Under Processing
+- Published
+- Failed
+
+Internal saved status values:
+- under_review
+- accepted
+- rejected
+
+Packages & Pricing:
+Admin can manage publication packages.
+
+Package management supports:
+- Create package
+- Edit package
+- Activate/deactivate package
+- Delete package
+- Add media coverage rows
+- Set cost price and margin
+- Auto-calculate final package price on backend
+
+Payment History:
+Admin can access payment history from the navbar, similar to user payment history.
+
+
+14. ARTICLE LIFECYCLE
+
+Article flow:
+
+draft
+payment_pending
+writing
+submitted
+under_review
+accepted or rejected
+
+Meaning:
+- draft: Article created but not ready
+- payment_pending: Payment is not completed
+- writing: Payment completed and user can write article
+- submitted: User submitted article to admin
+- under_review: Admin marked article as under processing
+- accepted: Admin published/accepted article
+- rejected: Admin failed/rejected article
+
+
+15. PAYMENT FLOW
+
+Step 1:
+User selects package and quantity.
+
+Step 2:
+Backend creates article records.
+
+Step 3:
+Frontend opens checkout page.
+
+Step 4:
+Frontend requests Razorpay order from backend.
+
+Step 5:
+Backend calculates total amount from article packagePrice values.
+
+Step 6:
+User completes Razorpay payment.
+
+Step 7:
+Frontend sends Razorpay verification details to backend.
+
+Step 8:
+Backend verifies payment signature.
+
+Step 9:
+Payment becomes paid.
+
+Step 10:
+Related articles become writing status.
+
+
+16. PDF FEATURES
+
+Article PDF:
+Users and admins can download article PDFs.
+
+Payment PDF:
+Users and admins can download payment details PDFs.
+
+Payment PDF contains:
+- Payment ID
+- Razorpay order ID
+- Razorpay payment ID
+- Article IDs
+- Article quantity
+- Package names
+- Package category
+- Package quantity
+- Amount
+- Currency
+- Status
+- Paid date and time
+
+Payment PDF is designed as a single-page document.
+
+
+17. BRANDING
+
+Visible project name:
+SEO
+
+Some internal localStorage keys use SEO names:
+- seo_access_token
+- seo_refresh_token
+
+These can stay as internal keys unless a full internal rename is required.
+
+
+18. IMPORTANT NOTES
+
+Use npm.cmd in PowerShell if npm.ps1 is blocked.
+
+Admin accounts require role admin in the database.
+
+Razorpay requires valid key ID and secret.
+
+Image upload currently stores image data in the article model. For production,
+external file storage is recommended.
+
+Package prices are preserved on articles after creation so old article payments
+are not changed by future package price edits.
+
+Only authenticated users can access article, payment, and PDF routes.
+
+Only admins can access admin package, admin article review, and admin dashboard APIs.

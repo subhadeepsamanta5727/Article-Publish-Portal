@@ -1,0 +1,213 @@
+INKWELL ARTICLE PUBLISH PORTAL - API ENDPOINTS
+===============================================
+
+Base URL
+--------
+http://localhost:5000
+
+For protected endpoints, add this Postman Authorization header:
+Authorization: Bearer <accessToken>
+
+All JSON requests must include:
+Content-Type: application/json
+
+
+1. HEALTH CHECK
+---------------
+GET /api/health
+Access: Public
+
+
+2. AUTHENTICATION
+-----------------
+
+POST /api/auth/register
+Access: Public
+Body:
+{
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "phone": "9999999999",
+  "password": "Test@123"
+}
+
+POST /api/auth/login
+Access: Public
+Body:
+{
+  "email": "testuser@example.com",
+  "password": "Test@123"
+}
+Response includes: data.accessToken and data.refreshToken
+
+POST /api/auth/refresh-token
+Access: Public
+Body:
+{
+  "refreshToken": "<refreshToken>"
+}
+
+GET /api/auth/me
+Access: Bearer token
+
+
+3. ARTICLES
+-----------
+
+POST /api/articles
+Access: Bearer token
+Body:
+{
+  "author": {
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "phone": "9999999999",
+    "Country": "India",
+    "state": "West Bengal",
+    "city": "Kolkata",
+    "adress": "Demo address"
+  },
+  "packageItems": [
+    { "packageId": "PACKAGE_ID_OR_MONGODB_ID", "quantity": 2 },
+    { "packageId": "SECOND_PACKAGE_ID", "quantity": 1 }
+  ]
+}
+Each quantity creates one article submission. Response includes data.articleIds,
+data.totalArticles, and data.totalAmount (in rupees).
+
+GET /api/packages
+Access: Public
+Returns active packages for the package selector. Use either the returned
+_id or packageId as packageItems[].packageId.
+
+PACKAGE ADMINISTRATION
+----------------------
+All package administration endpoints require an Admin Bearer token.
+
+GET /api/admin/packages
+Returns active and inactive packages.
+
+POST /api/admin/packages
+Body:
+{
+  "packageName": "Digital Starter",
+  "category": "Technology",
+  "mediaCoverage": [{ "publisherName": "Example News", "sampleReportLink": "https://example.com/sample" }],
+  "costPrice": 500,
+  "margin": 20,
+  "marginCategory": "percentage",
+  "currency": "INR"
+}
+The backend automatically generates packageId (for example PKG-2026-00001) and
+calculates price: percentage = costPrice + percentage margin; amount = costPrice
++ margin. Do not send packageId or price.
+
+PUT /api/admin/packages/:packageId
+Updates package details and recalculates its price when cost/margin changes.
+
+PATCH /api/admin/packages/:packageId/availability
+Body: { "isActive": false }
+
+DELETE /api/admin/packages/:packageId
+Deletes an unused package. A package used by article submissions must be
+deactivated instead, preserving submission and payment history.
+
+GET /api/articles/my
+Access: Bearer token
+
+GET /api/articles/:articleId
+Access: Bearer token
+Example: GET /api/articles/ARTICLE_ID
+
+PUT /api/articles/:articleId
+Access: Bearer token
+Note: The article payment must be completed first.
+Body:
+{
+  "articleTitle": "My First Article",
+  "keywords": ["technology", "demo"],
+  "abstract": "A short article summary.",
+  "content": "Full article content goes here."
+}
+
+POST /api/articles/:articleId/submit
+Access: Bearer token
+Note: Requires a paid article with title and content.
+
+
+4. PAYMENTS
+-----------
+
+POST /api/payments/create-order
+Access: Bearer token
+Body:
+{
+  "articleIds": ["ARTICLE_ID_1", "ARTICLE_ID_2"]
+}
+Note: Creates one Razorpay order for all selected articles. The backend calculates
+the amount from the selected package prices; do not send a price from the client.
+For a single article, the existing { "articleId": "ARTICLE_ID" } body still works.
+
+POST /api/payments/verify
+Access: Bearer token
+Body:
+{
+  "razorpayOrderId": "order_xxx",
+  "razorpayPaymentId": "pay_xxx",
+  "razorpaySignature": "signature_from_razorpay"
+}
+
+GET /api/payments/history
+Access: Bearer token
+
+
+5. PDFS
+-------
+
+GET /api/pdfs/article/:articleId
+Access: Bearer token
+Downloads the user's article PDF.
+
+GET /api/pdfs/payment/:articleId
+Access: Bearer token
+Downloads the user's payment PDF. A payment must exist.
+
+
+6. ADMIN
+--------
+All admin endpoints require a Bearer token for a user whose role is "admin".
+
+GET /api/admin/articles
+Access: Admin Bearer token
+Optional query parameters:
+  ?articleId=ART-001
+  ?fromDate=2026-08-01
+  ?toDate=2026-08-31
+  ?page=1&limit=10
+
+GET /api/admin/articles/:articleId
+Access: Admin Bearer token
+
+PATCH /api/admin/articles/:articleId/status
+Access: Admin Bearer token
+Body:
+{
+  "status": "under_review"
+}
+Allowed status values: under_review, accepted, rejected
+
+GET /api/admin/articles/:articleId/payment
+Access: Admin Bearer token
+
+GET /api/admin/articles/:articleId/pdf
+Access: Admin Bearer token
+Downloads the complete article PDF.
+
+
+POSTMAN QUICK SETUP
+-------------------
+1. Log in using POST /api/auth/login.
+2. Copy data.accessToken from the response.
+3. On protected requests, open Authorization.
+4. Select Type: Bearer Token.
+5. Paste the access token.
