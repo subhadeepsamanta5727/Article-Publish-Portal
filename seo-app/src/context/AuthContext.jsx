@@ -1,20 +1,21 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import { getMe } from "../services/authService";
+import { logout } from "../services/authService";
 
 /**
  * AUTH CONTEXT
  * 
  * Global authentication state management using React Context API
- * Manages user login state, loading state, and persists authentication tokens
+ * Manages user login state, loading state, and persists the short-lived access token
  * 
  * State:
  * - user: Currently authenticated user object (null if logged out)
  * - loading: Boolean indicating if initial auth check is in progress
  * 
  * Functions:
- * - signIn(data): Store tokens and update user state
- * - signOut(): Clear tokens and reset user state
+ * - signIn(data): Store the access token and update user state
+ * - signOut(): Revoke the refresh cookie and reset user state
  * 
  * Usage: Call useAuth() hook in any component to access auth context
  */
@@ -54,8 +55,8 @@ export function AuthProvider({ children }) {
         // Fetch current user data using access token
         setUser((await getMe()).data);
       } catch {
-        // If token invalid/expired, clear all stored tokens
-        localStorage.clear();
+        // If the token is invalid/expired, clear the stored access token.
+        localStorage.removeItem("seo_access_token");
       } finally {
         // Auth check complete regardless of success/failure
         setLoading(false);
@@ -66,17 +67,15 @@ export function AuthProvider({ children }) {
 
   /**
    * Sign in user
-   * Stores authentication tokens in localStorage and updates user state
+  * Stores only the short-lived access token; the refresh token is an HttpOnly cookie.
    * Called after successful login or registration
    * 
    * @param {Object} data - Login response containing accessToken, refreshToken, and user
    * @param {string} data.accessToken - JWT access token for API requests
-   * @param {string} data.refreshToken - JWT refresh token for token renewal
    * @param {Object} data.user - User object with id, name, email, role
    */
   const signIn = (data) => {
     localStorage.setItem("seo_access_token", data.accessToken);
-    localStorage.setItem("seo_refresh_token", data.refreshToken);
     setUser(data.user);
   };
 
@@ -85,9 +84,13 @@ export function AuthProvider({ children }) {
    * Clears all stored tokens and resets user state
    * Called on logout button click
    */
-  const signOut = () => {
+  const signOut = async () => {
+    try {
+      await logout();
+    } catch {
+      // The local access token is cleared even if the network is unavailable.
+    }
     localStorage.removeItem("seo_access_token");
-    localStorage.removeItem("seo_refresh_token");
     setUser(null);
   };
 

@@ -9,7 +9,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const getDashboardStats = asyncHandler(async (req, res) => {
   const [allArticles, publishedArticles, submittedArticles, allUsers, pendingPayments, writingArticles] = await Promise.all([
     Article.countDocuments(),
-    Article.countDocuments({ status: "accepted" }),
+    Article.countDocuments({ status: { $in: ["pending", "delivered", "accepted"] } }),
     Article.countDocuments({ status: { $in: ["submitted", "under_review"] } }),
     User.countDocuments(),
     Article.countDocuments({ paymentStatus: "pending" }),
@@ -42,12 +42,14 @@ const getSubmittedArticles = asyncHandler(async (req, res) => {
         "writing",
         "submitted",
         "under_review",
+        "pending",
+        "delivered",
         "accepted",
         "rejected",
       ],
     },
   };
-  if (status && ["draft", "payment_pending", "writing", "submitted", "under_review", "accepted", "rejected"].includes(status)) filter.status = status;
+  if (status && ["draft", "payment_pending", "writing", "submitted", "under_review", "pending", "delivered", "accepted", "rejected"].includes(status)) filter.status = status;
   if (authorName) filter["author.name"] = { $regex: authorName, $options: "i" };
 
   // Article ID search
@@ -162,11 +164,12 @@ const updateArticleStatus = asyncHandler(
   async (req, res) => {
     const { articleId } = req.params;
 
-    const { status } = req.body;
+    const { status, deliveryNote = "", deliveryLink = "" } = req.body;
 
     const allowedStatuses = [
       "under_review",
-      "accepted",
+      "pending",
+      "delivered",
       "rejected",
     ];
 
@@ -188,18 +191,25 @@ const updateArticleStatus = asyncHandler(
       );
     }
 
-    if (
-      article.status !== "writing" &&
-      article.status !== "submitted" &&
-      article.status !== "under_review"
-    ) {
+    if (status === "delivered" && article.status !== "pending") {
+      throw new ApiError(400, "Only pending articles can be marked as delivered");
+    }
+
+    if (status !== "delivered" && !["writing", "submitted", "under_review", "pending"].includes(article.status)) {
       throw new ApiError(
         400,
         "Article cannot be reviewed in its current state"
       );
     }
 
+    if (status === "delivered" && !deliveryNote.trim()) {
+      throw new ApiError(400, "A delivery note is required");
+    }
+
     article.status = status;
+    if (deliveryNote !== undefined) article.deliveryNote = deliveryNote.trim();
+    if (deliveryLink !== undefined) article.deliveryLink = deliveryLink.trim();
+    if (status === "delivered") article.deliveredAt = new Date();
 
     await article.save();
 

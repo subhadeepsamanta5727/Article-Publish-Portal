@@ -9,9 +9,10 @@ import {
 import { ArticleEditorPage, CheckoutPage, CreateArticlePage } from "./features/articles";
 import UserArticlesPage from "./pages/UserArticlesPage";
 import PaymentHistoryPage from "./pages/PaymentHistoryPage";
-import { AdminPackagesPage, AdminPage } from "./features/admin";
+import { AdminPackagesPage, AdminPage, AdminPublishersPage } from "./features/admin";
 import { DashboardPage } from "./features/dashboard";
 import { AppShell, ThemeProvider } from "./shared";
+import LandingPage from "./pages/LandingPage";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,14 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route
+              path="/"
+              element={
+                <GuestRoute>
+                  <LandingPage />
+                </GuestRoute>
+              }
+            />
             <Route
               path="/login"
               element={
@@ -80,6 +89,14 @@ function App() {
                 element={
                   <ProtectedRoute adminOnly>
                     <AdminPackagesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/publishers"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminPublishersPage />
                   </ProtectedRoute>
                 }
               />

@@ -20,6 +20,12 @@ const paymentSchema=new mongoose.Schema(
             unitPrice:{ type:Number, required:true, min:0 },
             quantity:{ type:Number, required:true, min:1 },
         }],
+        publisherSummary:[{
+            publisherId:{ type:mongoose.Schema.Types.ObjectId, ref:"Publisher", required:true },
+            publisherName:{ type:String, required:true },
+            unitPrice:{ type:Number, required:true, min:0 },
+            quantity:{ type:Number, required:true, min:1 },
+        }],
         razorpayOrderId:
         {
             type:String,

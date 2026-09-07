@@ -30,7 +30,7 @@ export default function DashboardPage() {
   };
   if (user?.role === "admin") {
     const cards = [[FileText, "All articles", adminStats.allArticles], [ShieldCheck, "Published articles", adminStats.publishedArticles], [MessageSquare, "Submitted articles", adminStats.submittedArticles], [Users, "All users", adminStats.allUsers], [Receipt, "Pending payments", adminStats.pendingPayments], [PenLine, "Articles in writing", adminStats.writingArticles]];
-    return <div className="mx-auto max-w-6xl"><p className="text-sm font-semibold text-red-600">ADMINISTRATION</p><h1 className="mt-1 text-3xl font-bold">Dashboard</h1><p className="mt-2 text-slate-500">Overview of articles, users, payments, and editorial progress.</p><div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([Icon, label, value]) => <div className="card p-5" key={label}><Icon className="text-red-600" size={21} /><p className="mt-5 text-sm text-slate-500">{label}</p><p className="mt-1 text-3xl font-bold text-red-700">{value}</p></div>)}</div></div>;
+    return <div className="mx-auto max-w-6xl"><p className="text-sm font-semibold text-blue-600">ADMINISTRATION</p><h1 className="mt-1 text-3xl font-bold">Dashboard</h1><p className="mt-2 text-slate-500">Overview of articles, users, payments, and editorial progress.</p><div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([Icon, label, value]) => <div className="card p-5" key={label}><Icon className="text-blue-600" size={21} /><p className="mt-5 text-sm text-slate-500">{label}</p><p className="mt-1 text-3xl font-bold text-blue-700">{value}</p></div>)}</div></div>;
   }
   return (
     <>

@@ -30,6 +30,7 @@ export default function LoginPage() {
     <AuthLayout
       title="Welcome back"
       subtitle="Sign in to continue your publishing journey."
+      lightOnly
     >
       <form onSubmit={submit} className="mt-8 space-y-5">
         <label className="block label">

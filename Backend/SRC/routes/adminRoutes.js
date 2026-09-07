@@ -14,6 +14,13 @@ const {
   setPackageAvailability,
   deletePackage,
 } = require("../controllers/packageController");
+const {
+  getAllPublishers,
+  createPublisher,
+  updatePublisher,
+  setPublisherAvailability,
+  deletePublisher,
+} = require("../controllers/publisherController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/roleMiddleware");
@@ -41,6 +48,11 @@ router.post("/packages", createPackage);
 router.put("/packages/:packageId", updatePackage);
 router.patch("/packages/:packageId/availability", setPackageAvailability);
 router.delete("/packages/:packageId", deletePackage);
+router.get("/publishers", getAllPublishers);
+router.post("/publishers", createPublisher);
+router.put("/publishers/:publisherId", updatePublisher);
+router.patch("/publishers/:publisherId/availability", setPublisherAvailability);
+router.delete("/publishers/:publisherId", deletePublisher);
 
 
 // Submitted articles

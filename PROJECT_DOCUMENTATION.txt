@@ -80,6 +80,10 @@ JWT_SECRET=your_access_token_secret
 JWT_REFRESH_SECRET=your_refresh_token_secret
 RAZORPAY_KEY_ID=your_razorpay_key
 RAZORPAY_KEY_SECRET=your_razorpay_secret
+GEMINI_MODEL=gemini-3.5-flash
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 
 5. BACKEND MODELS
@@ -118,7 +122,11 @@ Main fields:
 - resourceLink
 - status
 - submittedAt
+- articlePdfUrl
 - paymentStatus
+- deliveryNote
+- deliveryLink
+- deliveredAt
 - createdAt
 - updatedAt
 
@@ -129,6 +137,8 @@ Article status values:
 - submitted
 - under_review
 - accepted
+- pending
+- delivered
 - rejected
 
 Frontend status display:
@@ -137,6 +147,8 @@ Frontend status display:
 - under_review: Under Processing
 - accepted: Published
 - rejected: Failed
+- pending: Pending delivery
+- delivered: Delivered
 
 Package model:
 Stores admin-created publication packages.
@@ -535,9 +547,13 @@ Payment PDF is designed as a single-page document.
 Visible project name:
 SEO
 
-Some internal localStorage keys use SEO names:
+The short-lived access token uses an internal localStorage key:
 - seo_access_token
-- seo_refresh_token
+
+Refresh tokens are stored in an HttpOnly, Secure, SameSite cookie and are never
+returned to or stored by the frontend. Refresh requests require the CSRF token
+header and rotate the refresh cookie. Set VITE_API_URL in the frontend build
+environment to the production API base URL; localhost is only the development fallback.
 
 These can stay as internal keys unless a full internal rename is required.
 

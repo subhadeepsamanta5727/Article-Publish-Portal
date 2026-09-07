@@ -17,7 +17,8 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
   if (!articleIds.length) throw new ApiError(400, "At least one article ID is required");
 
   const articles = await Article.find({ articleId: { $in: articleIds }, userId: req.user.userId })
-    .populate("packageId", "packageName currency");
+    .populate("packageId", "packageName currency")
+    .populate("publisherId", "publisherName currency");
 
   if (articles.length !== articleIds.length) throw new ApiError(404, "One or more articles were not found");
   
@@ -27,7 +28,9 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
   }
   
   // Validate all articles have required price field
-  const articlesWithoutPrice = articles.filter((a) => !a.packagePrice || a.packagePrice < 0);
+  const articlesWithoutPrice = articles.filter((a) =>
+    a.packagePrice < 0 || a.publisherPrice < 0 || (a.packagePrice === 0 && a.publisherPrice === 0)
+  );
   if (articlesWithoutPrice.length > 0) {
     throw new ApiError(400, "One or more articles have invalid pricing information");
   }
@@ -43,7 +46,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
   }
 
   // Prices are captured when an article is created, in rupees. Razorpay accepts paise.
-  const totalInRupees = articles.reduce((total, article) => total + article.packagePrice, 0);
+  const totalInRupees = articles.reduce((total, article) => total + article.packagePrice + article.publisherPrice, 0);
   const amount = Math.round(totalInRupees * 100);
   
   if (!Number.isSafeInteger(amount) || amount < 100) {
@@ -52,15 +55,20 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
 
   const summaries = new Map();
   articles.forEach((article) => {
-    const packageKey = String(article.packageId._id);
-    const current = summaries.get(packageKey);
+    if (article.packageId) {
+      const packageKey = String(article.packageId._id);
+      const current = summaries.get(packageKey);
+      if (current) current.quantity += 1;
+      else summaries.set(packageKey, { packageId: article.packageId._id, packageName: article.packageId.packageName, unitPrice: article.packagePrice, quantity: 1 });
+    }
+  });
+  const publisherSummaries = new Map();
+  articles.forEach((article) => {
+    if (!article.publisherId) return;
+    const key = String(article.publisherId._id);
+    const current = publisherSummaries.get(key);
     if (current) current.quantity += 1;
-    else summaries.set(packageKey, {
-      packageId: article.packageId._id,
-      packageName: article.packageId.packageName,
-      unitPrice: article.packagePrice,
-      quantity: 1,
-    });
+    else publisherSummaries.set(key, { publisherId: article.publisherId._id, publisherName: article.publisherId.publisherName, unitPrice: article.publisherPrice, quantity: 1 });
   });
   const packageSummary = [...summaries.values()];
 
@@ -76,6 +84,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
       userId: req.user.userId,
       articleIds: articles.map((article) => article._id),
       packageSummary,
+      publisherSummary: [...publisherSummaries.values()],
       razorpayOrderId: order.id,
       amount: order.amount,
       currency: order.currency,
@@ -95,6 +104,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
       articleIds,
       totalArticles: articles.length,
       packages: packageSummary,
+      publishers: [...publisherSummaries.values()],
       keyId: process.env.RAZORPAY_KEY_ID,
     }, "Payment order created successfully"));
   } catch (razorpayError) {
@@ -170,6 +180,7 @@ const getMyPayments = asyncHandler(async (req, res) => {
   const payments = await Payment.find(filter)
     .populate("articleIds", "articleId articleTitle packageId")
     .populate("packageSummary.packageId", "packageName category")
+    .populate("publisherSummary.publisherId", "publisherName category")
     .sort({ createdAt: -1 });
   res.status(200).json(new ApiResponse(200, payments, "Payment history fetched successfully"));
 });
@@ -200,6 +211,10 @@ const getAllPayments = asyncHandler(async (req, res) => {
     .populate({
       path: "packageSummary.packageId",
       select: "packageName category",
+    })
+    .populate({
+      path: "publisherSummary.publisherId",
+      select: "publisherName category",
     })
     .sort({ createdAt: -1 });
 

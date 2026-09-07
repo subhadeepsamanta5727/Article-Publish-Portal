@@ -1,17 +1,73 @@
 const Article = require("../Models/Article");
 const Package = require("../Models/PackageSchema");
+const Publisher = require("../Models/Publisher");
 const mongoose = require("mongoose");
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
 
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const generateArticleId = require("../utils/generateArticleId");
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+const hasCloudinaryCredentials = () => [
+  process.env.CLOUDINARY_CLOUD_NAME,
+  process.env.CLOUDINARY_API_KEY,
+  process.env.CLOUDINARY_API_SECRET,
+].every((credential) => credential && !credential.startsWith("your_"));
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadArticleAsset = [
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!hasCloudinaryCredentials()) {
+      throw new ApiError(500, "Cloudinary credentials are missing. Add real CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET values to SRC/.env.");
+    }
+    const article = await Article.findOne({ articleId: req.params.articleId, userId: req.user.userId });
+    if (!article) throw new ApiError(404, "Article not found");
+    if (!req.file) throw new ApiError(400, "Please select a file");
+    if (["submitted", "under_review", "pending", "delivered", "accepted"].includes(article.status)) {
+      throw new ApiError(400, "Article can no longer be edited");
+    }
+
+    const resourceType = req.file.mimetype === "application/pdf" ? "raw" : "image";
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "seo-articles", resource_type: resourceType },
+        (error, uploaded) => (error ? reject(error) : resolve(uploaded)),
+      );
+      stream.end(req.file.buffer);
+    });
+
+    if (resourceType === "raw") article.articlePdfUrl = result.secure_url;
+    else article.images = [...article.images, result.secure_url];
+    await article.save();
+    res.status(201).json(new ApiResponse(201, {
+      url: result.secure_url,
+      type: resourceType,
+      article,
+    }, "File uploaded successfully"));
+  }),
+];
+
 const createArticle = asyncHandler(async (req, res) => {
   const {
     author,
     packageItems,
     packageIds,
+    publisherItems,
+    publisherIds,
+    publisherId,
     quantity,
     adminCreate = false,
   } = req.body;
@@ -40,10 +96,6 @@ const createArticle = asyncHandler(async (req, res) => {
       ? packageIds.map((packageId) => ({ packageId, quantity: quantity || 1 }))
       : [];
 
-  if (!requestedItems.length) {
-    throw new ApiError(400, "Select at least one package");
-  }
-
   const quantities = new Map();
   for (const item of requestedItems) {
     const packageKey = String(item.packageId || "").trim();
@@ -54,40 +106,68 @@ const createArticle = asyncHandler(async (req, res) => {
     quantities.set(packageKey, (quantities.get(packageKey) || 0) + itemQuantity);
   }
 
-  const requestedKeys = [...quantities.keys()];
-  const objectIds = requestedKeys.filter((key) => mongoose.isValidObjectId(key));
-  const packages = await Package.find({
-    isActive: true,
-    $or: [{ _id: { $in: objectIds } }, { packageId: { $in: requestedKeys } }],
-  });
-
-  const packageByKey = new Map();
-  packages.forEach((pkg) => {
-    packageByKey.set(String(pkg._id), pkg);
-    packageByKey.set(pkg.packageId, pkg);
-  });
-
-  const resolvedItems = requestedKeys.map((key) => ({ package: packageByKey.get(key), quantity: quantities.get(key) }));
-  if (resolvedItems.some((item) => !item.package)) {
-    throw new ApiError(400, "One or more selected packages are unavailable");
+  const publisherRequestedItems = Array.isArray(publisherItems) && publisherItems.length
+    ? publisherItems
+    : (Array.isArray(publisherIds) && publisherIds.length
+      ? publisherIds.map((id) => ({ publisherId: id, quantity: quantity || 1 }))
+      : publisherId ? [{ publisherId, quantity: quantity || 1 }] : []);
+  const publisherQuantities = new Map();
+  for (const item of publisherRequestedItems) {
+    const key = String(item.publisherId || "").trim();
+    const itemQuantity = Number(item.quantity || 1);
+    if (!key || !Number.isInteger(itemQuantity) || itemQuantity < 1) {
+      throw new ApiError(400, "Each publisher must have a whole-number quantity of at least 1");
+    }
+    publisherQuantities.set(key, (publisherQuantities.get(key) || 0) + itemQuantity);
   }
 
+  const resolveCatalogueItems = async (items, Model, field, unavailableMessage) => {
+    const keys = [...items.keys()];
+    const objectIds = keys.filter((key) => mongoose.isValidObjectId(key));
+    const records = await Model.find({
+      isActive: true,
+      $or: [{ _id: { $in: objectIds } }, { [field]: { $in: keys } }],
+    });
+    const byKey = new Map();
+    records.forEach((record) => {
+      byKey.set(String(record._id), record);
+      byKey.set(record[field], record);
+    });
+    const resolved = keys.flatMap((key) => Array.from({ length: items.get(key) }, () => byKey.get(key)));
+    if (resolved.some((record) => !record)) throw new ApiError(400, unavailableMessage);
+    return resolved;
+  };
+
+  if (!quantities.size && !publisherQuantities.size) {
+    throw new ApiError(400, "Select at least one package or publisher");
+  }
+  const selectedPackages = await resolveCatalogueItems(quantities, Package, "packageId", "One or more selected packages are unavailable");
+  const selectedPublishers = await resolveCatalogueItems(publisherQuantities, Publisher, "publisherId", "One or more selected publishers are unavailable");
+  if (selectedPackages.length && selectedPublishers.length && selectedPackages.length !== selectedPublishers.length) {
+    throw new ApiError(400, "When selecting packages and publishers together, their quantities must match");
+  }
+
+  const totalArticles = Math.max(selectedPackages.length, selectedPublishers.length);
   const articles = [];
-  for (const { package: selectedPackage, quantity: itemQuantity } of resolvedItems) {
-    for (let count = 0; count < itemQuantity; count += 1) {
-      const articleId = await generateArticleId();
-      articles.push(await Article.create({
-        articleId,
-        userId: req.user.userId,
-        packageId: selectedPackage._id,
-        packagePrice: selectedPackage.price,
-        currency: selectedPackage.currency,
-        author,
-        category: {},
-        status: isAdminCreate ? "writing" : "draft",
-        paymentStatus: isAdminCreate ? "paid" : "pending",
-      }));
-    }
+  for (let index = 0; index < totalArticles; index += 1) {
+    const selectedPackage = selectedPackages[index];
+    const selectedPublisher = selectedPublishers[index];
+    const articleId = await generateArticleId();
+    articles.push(await Article.create({
+      articleId,
+      userId: req.user.userId,
+      packageId: selectedPackage?._id,
+      packagePrice: selectedPackage?.price || 0,
+      packageCostPrice: selectedPackage?.costPrice || 0,
+      publisherId: selectedPublisher?._id,
+      publisherPrice: selectedPublisher?.price || 0,
+      publisherCostPrice: selectedPublisher?.costPrice || 0,
+      currency: selectedPackage?.currency || selectedPublisher?.currency || "INR",
+      author,
+      category: {},
+      status: isAdminCreate ? "writing" : "draft",
+      paymentStatus: isAdminCreate ? "paid" : "pending",
+    }));
   }
 
   res.status(201).json(
@@ -98,7 +178,7 @@ const createArticle = asyncHandler(async (req, res) => {
         articleIds: articles.map((article) => article.articleId),
         articles,
         totalArticles: articles.length,
-        totalAmount: articles.reduce((total, article) => total + article.packagePrice, 0),
+        totalAmount: articles.reduce((total, article) => total + article.packagePrice + article.publisherPrice, 0),
         currency: "INR",
       },
       "Article submissions created successfully"
@@ -170,6 +250,7 @@ const updateArticle = asyncHandler(async (req, res) => {
     content,
     images,
     refLink,
+    articlePdfUrl,
   } = req.body;
 
   const article = await Article.findOne({
@@ -194,7 +275,7 @@ const updateArticle = asyncHandler(async (req, res) => {
 
   // Don't allow editing submitted/accepted articles
   if (
-    ["submitted", "under_review", "accepted"].includes(
+    ["submitted", "under_review", "pending", "delivered", "accepted"].includes(
       article.status
     )
   ) {
@@ -221,6 +302,7 @@ const updateArticle = asyncHandler(async (req, res) => {
   }
   if (images !== undefined) article.images = images;
   if (refLink !== undefined) article.refLink = refLink;
+  if (articlePdfUrl !== undefined) article.articlePdfUrl = articlePdfUrl;
 
   article.status = "writing";
 
@@ -277,7 +359,7 @@ const submitArticle = asyncHandler(async (req, res) => {
 
   // Prevent duplicate submission
   if (
-    ["submitted", "under_review", "accepted"].includes(
+    ["submitted", "under_review", "pending", "delivered", "accepted"].includes(
       article.status
     )
   ) {
@@ -328,6 +410,7 @@ const generateArticleContent = asyncHandler(async (req, res) => {
   }
 
   const geminiApiKey = process.env.GEMINI_API_KEY;
+  const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
   if (!geminiApiKey) {
     throw new ApiError(500, "AI service is not configured");
   }
@@ -356,7 +439,7 @@ Please generate the article content now:`;
 
   try {
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
+      `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(geminiModel)}:generateContent`,
       {
         method: "POST",
         headers: {
@@ -428,4 +511,5 @@ module.exports = {
   updateArticle,
   submitArticle,
   generateArticleContent,
+  uploadArticleAsset,
 };

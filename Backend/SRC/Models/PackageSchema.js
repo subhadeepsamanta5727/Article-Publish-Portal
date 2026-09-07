@@ -33,7 +33,7 @@ const packageSchema = new mongoose.Schema(
 
                 sampleReportLink: {
                     type: String,
-                    required: true,
+                    default: "",
                     trim: true,
                 },
             },

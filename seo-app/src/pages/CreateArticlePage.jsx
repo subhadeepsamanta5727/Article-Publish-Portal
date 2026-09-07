@@ -2,6 +2,7 @@
 
 import {
   ArrowDown,
+  ArrowDownUp,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
@@ -15,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import SubmissionProgress from "../components/ui/SubmissionProgress";
 import { errorMessage } from "../lib/api";
 import { createArticle } from "../services/articleService";
-import { getActivePackages } from "../services/packageService";
+import { getActivePackages, getActivePublishers } from "../services/packageService";
 
 const initialAuthor = {
   name: "",
@@ -30,8 +31,13 @@ export default function CreateArticlePage() {
 
   const [author, setAuthor] = useState(initialAuthor);
   const [packages, setPackages] = useState([]);
+  const [publishers, setPublishers] = useState([]);
   const [selected, setSelected] = useState({});
+  const [selectedPublishers, setSelectedPublishers] = useState({});
   const [expanded, setExpanded] = useState({});
+  const [expandedPublishers, setExpandedPublishers] = useState({});
+  const [catalogueMode, setCatalogueMode] = useState("packages");
+  const [priceSort, setPriceSort] = useState("asc");
   const [quantity, setQuantity] = useState(1);
 
   const [step, setStep] = useState(1);
@@ -66,9 +72,12 @@ export default function CreateArticlePage() {
   useEffect(() => {
     const fetchPackages = async () => {
       try {
-        const response = await getActivePackages();
-
-        setPackages(response?.data || []);
+        const [packageResponse, publisherResponse] = await Promise.all([
+          getActivePackages(),
+          getActivePublishers(),
+        ]);
+        setPackages(packageResponse?.data || []);
+        setPublishers(publisherResponse?.data || []);
       } catch (error) {
         toast.error(errorMessage(error));
       } finally {
@@ -92,18 +101,35 @@ export default function CreateArticlePage() {
       }));
   }, [packages, selected, quantity]);
 
+  const publisherItems = useMemo(() => {
+    return publishers
+      .filter((publisher) => selectedPublishers[publisher._id])
+      .map((publisher) => ({
+        ...publisher,
+        quantity,
+      }));
+  }, [publishers, selectedPublishers, quantity]);
+
+  const catalogueItems = useMemo(() => {
+    const source = catalogueMode === "packages" ? packages : publishers;
+    return [...source].sort((first, second) => (Number(first.price || 0) - Number(second.price || 0)) * (priceSort === "asc" ? 1 : -1));
+  }, [catalogueMode, packages, publishers, priceSort]);
+
   // ======================================
   // TOTAL
   // ======================================
 
   const total = useMemo(() => {
-    return items.reduce((sum, item) => {
+    const packageTotal = items.reduce((sum, item) => {
       const price = Number(item.price) || 0;
       const itemQuantity = Number(item.quantity) || 0;
 
       return sum + price * itemQuantity;
     }, 0);
-  }, [items]);
+    return packageTotal + publisherItems.reduce((sum, item) => {
+      return sum + (Number(item.price) || 0) * (Number(item.quantity) || 0);
+    }, 0);
+  }, [items, publisherItems]);
 
   // ======================================
   // UPDATE AUTHOR
@@ -155,12 +181,28 @@ export default function CreateArticlePage() {
     });
   };
 
+  const togglePublisher = (id, checked) => {
+    setSelectedPublishers((current) => {
+      const next = { ...current };
+      if (checked) next[id] = true;
+      else delete next[id];
+      return next;
+    });
+  };
+
   // ======================================
   // TOGGLE PACKAGE DETAILS
   // ======================================
 
   const toggleExpanded = (id) => {
     setExpanded((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  };
+
+  const togglePublisherExpanded = (id) => {
+    setExpandedPublishers((current) => ({
       ...current,
       [id]: !current[id],
     }));
@@ -220,8 +262,9 @@ export default function CreateArticlePage() {
     event.preventDefault();
 
     // Validate packages
-    if (!items.length) {
-      toast.error("Select at least one publication package.");
+    const selectedItems = catalogueMode === "packages" ? items : publisherItems;
+    if (!selectedItems.length) {
+      toast.error(catalogueMode === "packages" ? "Select at least one publication package." : "Select at least one individual publisher.");
       return;
     }
 
@@ -241,10 +284,9 @@ export default function CreateArticlePage() {
           phone: author.phone.trim(),
         },
 
-        packageItems: items.map((item) => ({
-          packageId: item._id,
-          quantity,
-        })),
+        ...(catalogueMode === "packages"
+          ? { packageItems: items.map((item) => ({ packageId: item._id, quantity })) }
+          : { publisherItems: publisherItems.map((item) => ({ publisherId: item._id, quantity })) }),
       });
 
       toast.success(
@@ -285,7 +327,7 @@ export default function CreateArticlePage() {
           HEADER
       ====================================== */}
 
-      <p className="text-sm font-semibold text-red-600">
+      <p className="text-sm font-semibold text-blue-600">
         START A SUBMISSION
       </p>
 
@@ -340,9 +382,7 @@ export default function CreateArticlePage() {
           <section className="card p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold">
-                  Publication packages
-                </h2>
+                <h2 className="text-lg font-bold">Publication options</h2>
 
                 <p className="mt-1 text-sm text-slate-500">
                   Check a package and use the arrow to view its
@@ -350,9 +390,30 @@ export default function CreateArticlePage() {
                 </p>
               </div>
 
-              <span className="font-bold text-red-700">
+              <span className="font-bold text-blue-700">
                 Total: INR {total.toFixed(2)}
               </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Publication options">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={catalogueMode === "packages"}
+                onClick={() => setCatalogueMode("packages")}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${catalogueMode === "packages" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Publication packages
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={catalogueMode === "publishers"}
+                onClick={() => setCatalogueMode("publishers")}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${catalogueMode === "publishers" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Individual publishers
+              </button>
             </div>
 
             {/* ======================================
@@ -363,9 +424,9 @@ export default function CreateArticlePage() {
               <p className="mt-5 text-sm text-slate-500">
                 Loading packages...
               </p>
-            ) : packages.length === 0 ? (
+            ) : catalogueItems.length === 0 ? (
               <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-                No active packages are available.
+                No active {catalogueMode === "packages" ? "publication packages" : "individual publishers"} are available.
               </p>
             ) : (
               <>
@@ -373,14 +434,28 @@ export default function CreateArticlePage() {
                     PACKAGE LIST
                 ====================================== */}
 
-                <div className="mt-5 space-y-3">
-                  {packages.map((pkg) => {
+                <div className="mt-5 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPriceSort((current) => current === "asc" ? "desc" : "asc")}
+                    className="btn-secondary px-3 py-2"
+                    aria-label={`Sort ${catalogueMode === "packages" ? "packages" : "publishers"} by price ${priceSort === "asc" ? "descending" : "ascending"}`}
+                  >
+                    <ArrowDownUp size={15} />
+                    Price: {priceSort === "asc" ? "Low to high" : "High to low"}
+                  </button>
+                </div>
+
+                <div className="mt-3 max-h-[52vh] space-y-3 overflow-y-auto pr-2">
+                  {catalogueItems.map((pkg) => {
+                    const isPublisher = catalogueMode === "publishers";
+                    const itemId = pkg._id;
                     const isSelected = Boolean(
-                      selected[pkg._id]
+                      isPublisher ? selectedPublishers[itemId] : selected[itemId]
                     );
 
                     const isExpanded = Boolean(
-                      expanded[pkg._id]
+                      isPublisher ? expandedPublishers[itemId] : expanded[itemId]
                     );
 
                     return (
@@ -388,7 +463,7 @@ export default function CreateArticlePage() {
                         key={pkg._id}
                         className={`rounded-xl border p-4 transition-colors ${
                           isSelected
-                            ? "border-red-300 bg-red-50/50"
+                            ? "border-blue-300 bg-blue-50/50"
                             : "border-slate-200"
                         }`}
                       >
@@ -399,13 +474,12 @@ export default function CreateArticlePage() {
 
                           <input
                             type="checkbox"
-                            className="h-4 w-4 accent-red-600"
+                            className="h-4 w-4 accent-blue-600"
                             checked={isSelected}
                             onChange={(event) =>
-                              togglePackage(
-                                pkg._id,
-                                event.target.checked
-                              )
+                              isPublisher
+                                ? togglePublisher(itemId, event.target.checked)
+                                : togglePackage(itemId, event.target.checked)
                             }
                           />
 
@@ -413,7 +487,7 @@ export default function CreateArticlePage() {
 
                           <div className="min-w-0 flex-1">
                             <p className="font-bold">
-                              {pkg.packageName}
+                              {isPublisher ? pkg.publisherName : pkg.packageName}
                             </p>
 
                             <p className="mt-1 text-sm text-slate-500">
@@ -423,7 +497,7 @@ export default function CreateArticlePage() {
 
                           {/* PRICE */}
 
-                          <span className="font-bold text-red-700">
+                          <span className="font-bold text-blue-700">
                             INR{" "}
                             {Number(pkg.price || 0).toFixed(2)}
                           </span>
@@ -434,7 +508,7 @@ export default function CreateArticlePage() {
                             type="button"
                             className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100"
                             onClick={() =>
-                              toggleExpanded(pkg._id)
+                                  isPublisher ? togglePublisherExpanded(itemId) : toggleExpanded(itemId)
                             }
                             aria-label="Toggle package details"
                           >
@@ -454,8 +528,8 @@ export default function CreateArticlePage() {
                           <div className="mt-4 border-t border-slate-200 pt-4">
                             <div className="space-y-3 text-sm text-slate-600">
                               <div>
-                                <p className="font-semibold text-slate-900">
-                                  Package Details
+                                  <p className="font-semibold text-slate-900">
+                                    {isPublisher ? "Publisher details" : "Package details"}
                                 </p>
 
                                 <p className="mt-1">
@@ -468,7 +542,12 @@ export default function CreateArticlePage() {
 
                               {/* MEDIA COVERAGE */}
 
-                              {pkg.mediaCoverage?.length > 0 ? (
+                              {isPublisher ? (
+                                <div className="space-y-2">
+                                  {pkg.website && <a href={pkg.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Publisher website</a>}
+                                  {pkg.sampleReportLink && <a href={pkg.sampleReportLink} target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:underline">View sample report</a>}
+                                </div>
+                              ) : pkg.mediaCoverage?.length > 0 ? (
                                 <div>
                                   <p className="font-semibold text-slate-900">
                                     📰 Media Coverage & Demo Links
@@ -487,7 +566,7 @@ export default function CreateArticlePage() {
                                               }
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="inline-flex items-center gap-2 text-red-600 transition-colors hover:text-red-800 hover:underline"
+                                              className="inline-flex items-center gap-2 text-blue-600 transition-colors hover:text-blue-800 hover:underline"
                                             >
                                               {
                                                 media.publisherName
@@ -521,10 +600,10 @@ export default function CreateArticlePage() {
 
                             {isSelected && (
                               <div className="mt-4 border-t border-slate-100 pt-4">
-                                <div className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+                                <div className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600">
                                   <FilePlus2 size={16} />
 
-                                  Package selected
+                                  {isPublisher ? "Publisher selected" : "Package selected"}
                                 </div>
                               </div>
                             )}
@@ -564,7 +643,7 @@ export default function CreateArticlePage() {
             NAVIGATION BUTTONS
         ====================================== */}
 
-        <div className="flex justify-between gap-3">
+        <div className="sticky bottom-0 z-20 -mx-2 flex justify-between gap-3 border-t border-slate-200 bg-white/95 px-2 py-4 backdrop-blur sm:-mx-4 sm:px-4">
           {/* BACK / CANCEL */}
 
           {step === 1 ? (
@@ -605,8 +684,7 @@ export default function CreateArticlePage() {
               disabled={
                 busy ||
                 loadingPackages ||
-                !packages.length ||
-                !items.length
+                !(catalogueMode === "packages" ? packages.length && items.length : publishers.length && publisherItems.length)
               }
               className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
             >

@@ -170,7 +170,7 @@ function addFooters(doc) {
  * USAGE EXAMPLES:
  * 1. User download article PDF: includeContent=true, includeImages=true, includeRefLink=true, includePayment=false
  * 2. User download payment PDF: includePayment=true, includeContent=false
- * 3. Admin download article PDF: includeContent=true, includeImages=true, includeRefLink=true, includePayment=true
+ * 3. Admin download article PDF: includeContent=true, includeImages=true, includeRefLink=true, includePayment=false
  * 4. Admin download payment PDF: includePayment=true, includeContent=false
  */
 const generateArticlePDF = async ({ article, articleIds = [], payment = null, includePayment = false, includeContent = true, includeImages = false, includeRefLink = false, res }) => {
@@ -204,6 +204,7 @@ const generateArticlePDF = async ({ article, articleIds = [], payment = null, in
     detail(doc, "Article IDs", articleIds.map((id) => id.articleId || id).join(", "));
     detail(doc, "Article quantity", payment?.articleIds?.length || payment?.packageSummary?.reduce((total, item) => total + Number(item.quantity || 0), 0));
     if (payment?.packageSummary?.length) detail(doc, "Packages", payment.packageSummary.map((item) => `${item.packageName} · ${item.packageId?.category || "Category unavailable"} × ${item.quantity}`).join(", "));
+    if (payment?.publisherSummary?.length) detail(doc, "Publishers", payment.publisherSummary.map((item) => `${item.publisherName} · ${item.publisherId?.category || "Category unavailable"} × ${item.quantity}`).join(", "));
     detail(doc, "Amount", `INR ${(payment.amount / 100).toFixed(2)}`); 
     detail(doc, "Currency", payment.currency); 
     detail(doc, "Status", payment.status);
@@ -266,6 +267,13 @@ const generateArticlePDF = async ({ article, articleIds = [], payment = null, in
     doc.moveDown(0.5);
   }
 
+  if (article.articlePdfUrl) {
+    sectionTitle(doc, "Attached article PDF");
+    ensureSpace(doc, 30);
+    doc.fillColor(colors.ink).font("Helvetica").fontSize(9).text("Open the user-uploaded article PDF", { link: article.articlePdfUrl, underline: true });
+    doc.moveDown(0.5);
+  }
+
   // Optional: Payment details (added on separate page if payment record exists)
   if (includePayment && payment) {
     doc.addPage(); 
@@ -274,6 +282,7 @@ const generateArticlePDF = async ({ article, articleIds = [], payment = null, in
     detail(doc, "Article IDs", articleIds.map((id) => id.articleId || id).join(", "));
     detail(doc, "Article quantity", payment.articleIds?.length || payment.packageSummary?.reduce((total, item) => total + Number(item.quantity || 0), 0));
     if (payment.packageSummary?.length) detail(doc, "Packages", payment.packageSummary.map((item) => `${item.packageName} (${item.packageId?.category || "N/A"}) x${item.quantity}`).join(", "));
+    if (payment.publisherSummary?.length) detail(doc, "Publishers", payment.publisherSummary.map((item) => `${item.publisherName} (${item.publisherId?.category || "N/A"}) x${item.quantity}`).join(", "));
     detail(doc, "Amount", `INR ${(payment.amount / 100).toFixed(2)}`); 
     detail(doc, "Currency", payment.currency); 
     detail(doc, "Status", payment.status);

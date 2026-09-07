@@ -67,8 +67,8 @@ export const getAdminStats = () => api.get("/admin/stats");
  * PATCH /admin/articles/:id/status
  * Admin-only endpoint
  */
-export const setArticleStatus = (id, status) =>
-  api.patch(`/admin/articles/${id}/status`, { status });
+export const setArticleStatus = (id, status, details = {}) =>
+  api.patch(`/admin/articles/${id}/status`, { status, ...details });
 
 /**
  * Fetch single article details for admin
@@ -87,13 +87,12 @@ export const setArticleStatus = (id, status) =>
 export const getAdminArticle = (id) => api.get(`/admin/articles/${id}`);
 
 /**
- * Download article PDF from admin view
- * Returns PDF with full content, images, reference link, AND payment details
- * Use for admin record-keeping and audit purposes
+ * Download article content PDF from admin review view
+ * Returns the article content, images, and reference link without payment details
  * 
  * @param {string} id - Article ID
  * @returns {Promise<Blob>} PDF file blob for download
- *   Includes: article content, images, refLink, payment details, admin-specific info
+ *   Includes: article content, images, and refLink
  * 
  * GET /admin/articles/:id/pdf
  * Response type: "blob" (binary PDF data)
@@ -180,3 +179,17 @@ export const updateAdminPackage = (packageId, payload) =>
  */
 export const deleteAdminPackage = (packageId) =>
   api.delete(`/admin/packages/${packageId}`);
+
+export const getAdminPublishers = () => api.get("/admin/publishers");
+
+export const createAdminPublisher = (payload) =>
+  api.post("/admin/publishers", payload);
+
+export const updateAdminPublisher = (publisherId, payload) =>
+  api.put(`/admin/publishers/${publisherId}`, payload);
+
+export const setPublisherAvailability = (publisherId, isActive) =>
+  api.patch(`/admin/publishers/${publisherId}/availability`, { isActive });
+
+export const deleteAdminPublisher = (publisherId) =>
+  api.delete(`/admin/publishers/${publisherId}`);

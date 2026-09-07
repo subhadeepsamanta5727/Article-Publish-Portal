@@ -33,11 +33,14 @@ import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import StatusBadge from "../components/ui/StatusBadge";
 import { errorMessage } from "../lib/api";
+import { downloadRemotePdf } from "../lib/pdfActions";
 import {
   getArticle,
+  downloadArticlePdf,
   submitArticle,
   updateArticle,
   generateArticleContent,
+  uploadArticleFile,
 } from "../services/articleService";
 import { createOrder, verifyPayment } from "../services/paymentService";
 
@@ -66,6 +69,7 @@ export default function ArticleEditorPage() {
     content: "",                                       // Full article body text
     images: [],                                        // Array of image URLs (IMPORTANT: array, not singular)
     refLink: "",                                       // Reference/source link URL
+    articlePdfUrl: "",                                 // Optional completed article PDF URL
   });
   const [busy, setBusy] = useState(false);            // Saving/payment in progress
   const [generating, setGenerating] = useState(false); // AI content generation in progress
@@ -92,6 +96,7 @@ export default function ArticleEditorPage() {
         content: r.data.content || "",
         images: r.data.images || [],                    // IMPORTANT: Array from backend
         refLink: r.data.refLink || "",                  // IMPORTANT: Not resourceLink
+        articlePdfUrl: r.data.articlePdfUrl || "",
       });
     } catch (e) {
       toast.error(errorMessage(e));
@@ -234,7 +239,7 @@ export default function ArticleEditorPage() {
             toast.error(errorMessage(e) || "Payment verification failed. Please contact support.");
           }
         },
-        theme: { color: "#dc2626" },  // Brand red color
+        theme: { color: "#2563eb" },  // Brand red color
       }).open();
     } catch (e) {
       const msg = errorMessage(e) || "Payment initialization failed";
@@ -323,27 +328,8 @@ export default function ArticleEditorPage() {
 
   const handleDownloadPdf = async () => {
     try {
-      const token = localStorage.getItem("seo_access_token");
-      if (!token) {
-        toast.error("Session expired. Please login again.");
-        return;
-      }
-
-      const response = await fetch(
-        `http://localhost:5000/api/pdfs/article/${articleId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to download PDF");
-      }
-
-      const blob = await response.blob();
+      const response = await downloadArticlePdf(articleId);
+      const blob = response;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -357,6 +343,25 @@ export default function ArticleEditorPage() {
       toast.error(error.message || "Failed to download PDF");
     }
   };
+
+  const dataUrlToBlob = (dataUrl) => {
+    const [header, encoded] = dataUrl.split(",");
+    const mime = header.match(/data:(.*?);/)?.[1] || "image/jpeg";
+    const bytes = atob(encoded);
+    return new Blob([Uint8Array.from(bytes, (character) => character.charCodeAt(0))], { type: mime });
+  };
+
+  const uploadFile = async (file) => (await uploadArticleFile(articleId, file)).data;
+
+  const downloadAttachedPdf = async () => {
+    try {
+      await downloadRemotePdf(article.articlePdfUrl, `${article.articleId}-attached.pdf`);
+      toast.success("Attached PDF download started");
+    } catch (error) {
+      toast.error(error.message || "Unable to download attached PDF");
+    }
+  };
+
 
   const submit = async () => {
     setBusy(true);
@@ -375,7 +380,7 @@ export default function ArticleEditorPage() {
   if (!article) return <p className="text-slate-500">Loading article…</p>;
   const canEdit =
     article.paymentStatus === "paid" &&
-    !["submitted", "under_review", "accepted"].includes(article.status);
+    !["submitted", "under_review", "pending", "delivered", "accepted"].includes(article.status);
   const articlePrice = Number(article.packagePrice || 0).toFixed(2);
   return (
     <div className="mx-auto max-w-5xl">
@@ -390,6 +395,11 @@ export default function ArticleEditorPage() {
         </div>
         <StatusBadge status={article.status} />
       </div>
+        {article.status === "rejected" && (
+          <section className="card mt-7 border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+            This article was marked Failed by the admin. You can edit it and submit it again for review.
+          </section>
+        )}
       {previewOpen && (
         <section className="card mt-7 border-slate-200 bg-slate-50 p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -445,10 +455,18 @@ export default function ArticleEditorPage() {
                   href={article.refLink}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-red-600 underline"
+                  className="text-blue-600 underline"
                 >
                   {article.refLink}
                 </a>
+              </div>
+            )}
+            {article.articlePdfUrl && (
+              <div>
+                <p className="text-sm font-semibold text-slate-500">Attached article PDF</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" className="btn-secondary px-3 py-2 text-sm" onClick={downloadAttachedPdf}><Download size={15} /> Download PDF</button>
+                </div>
               </div>
             )}
             <div className="space-y-4">
@@ -525,13 +543,15 @@ export default function ArticleEditorPage() {
                         const files = input.files;
                         if (!files) return;
                         try {
-                          const compressed = [];
+                          const uploaded = [];
                           for (let i = 0; i < files.length; i++) {
                             const file = files[i];
                             const compressedImage = await compressImage(file, 1200, 0.75);
-                            compressed.push(compressedImage);
+                            const result = await uploadFile(dataUrlToBlob(compressedImage));
+                            uploaded.push(result.url);
                           }
-                          setForm({ ...form, images: [...form.images, ...compressed] });
+                          setForm({ ...form, images: [...form.images, ...uploaded] });
+                          await refresh();
                         } catch {
                           toast.error("Unable to read or compress the images.");
                         } finally {
@@ -562,6 +582,33 @@ export default function ArticleEditorPage() {
                         </div>
                       ))}
                     </div>
+                  )}
+                </label>
+                <label className="label">
+                  Completed article PDF
+                  <input
+                    disabled={!canEdit}
+                    className="field"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={async (e) => {
+                      const file = e.currentTarget.files?.[0];
+                      if (!file) return;
+                      try {
+                        const result = await uploadFile(file);
+                        setForm({ ...form, articlePdfUrl: result.url });
+                        toast.success("Article PDF uploaded");
+                      } catch (error) {
+                        toast.error(errorMessage(error));
+                      } finally {
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                  {form.articlePdfUrl && (
+                    <a className="mt-2 block text-sm text-blue-700 underline" href={form.articlePdfUrl} target="_blank" rel="noreferrer">
+                      View uploaded PDF
+                    </a>
                   )}
                 </label>
                 <label className="label">
@@ -615,7 +662,7 @@ export default function ArticleEditorPage() {
                 Close preview
               </button>
             )}
-            {["submitted", "under_review", "accepted"].includes(
+            {["submitted", "under_review", "pending", "delivered", "accepted"].includes(
               article.status,
             ) && (
               <button

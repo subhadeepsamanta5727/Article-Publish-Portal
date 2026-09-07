@@ -26,6 +26,7 @@ const {
   updateArticle,
   submitArticle,
   generateArticleContent,
+  uploadArticleAsset,
 } = require("../controllers/articleController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -67,6 +68,12 @@ router.post(
   "/",
   authMiddleware,
   createArticle
+);
+
+router.post(
+  "/:articleId/upload",
+  authMiddleware,
+  uploadArticleAsset
 );
 
 /**

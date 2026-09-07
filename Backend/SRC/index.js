@@ -4,9 +4,11 @@ const articleRoutes = require("./routes/articleRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const packageRoutes = require("./routes/packageRoutes");
+const publisherRoutes = require("./routes/publisherRoutes");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 
 const connectDB = require("./config/db");
 const errorMiddleware = require("./middlewares/errorMiddleware");
@@ -20,7 +22,27 @@ const app = express();
 // Security Middleware
 // ================================
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", process.env.CLIENT_URL || "http://localhost:5173"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  permittedCrossDomainPolicies: { permittedPolicies: "none" },
+}));
+app.use((req, res, next) => {
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
 
 app.use(
   cors({
@@ -35,6 +57,7 @@ app.use(
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // ================================
 // Health Check
@@ -54,6 +77,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/packages", packageRoutes);
+app.use("/api/publishers", publisherRoutes);
 app.use(
   "/api/payments",
   paymentRoutes

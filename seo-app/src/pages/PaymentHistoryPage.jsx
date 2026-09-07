@@ -112,7 +112,7 @@ export default function PaymentHistoryPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <p className="text-sm font-semibold text-red-600">ACCOUNT</p>
+      <p className="text-sm font-semibold text-blue-600">ACCOUNT</p>
       <h1 className="mt-1 text-3xl font-bold">
         {isAdmin ? "All Payments" : "Payment history"}
       </h1>
@@ -157,7 +157,7 @@ export default function PaymentHistoryPage() {
               >
                 <div>
                   <div className="flex items-center gap-3">
-                    <Receipt className="text-red-600" />
+                    <Receipt className="text-blue-600" />
                     <div>
                       <p className="font-semibold">Payment ID: {payment._id}</p>
                       <p className="text-sm text-slate-500">
@@ -166,7 +166,7 @@ export default function PaymentHistoryPage() {
                         ).toLocaleString()}{" "}
                         · Quantity: {quantity(payment)}
                       </p>
-                      <p className="text-sm font-semibold text-red-600">
+                      <p className="text-sm font-semibold text-blue-600">
                         Amount: ₹{(payment.amount / 100).toFixed(2)}
                       </p>
                       {isAdmin && payment.userId && (
@@ -179,7 +179,7 @@ export default function PaymentHistoryPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(payment.packageSummary || []).map((item) => (
                       <span
-                        className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+                        className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
                         key={`${payment._id}-${item.packageName}`}
                       >
                         {item.packageName} ·{" "}
@@ -241,7 +241,7 @@ export default function PaymentHistoryPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Amount</dt>
-                <dd className="font-semibold text-red-600">₹{(view.amount / 100).toFixed(2)}</dd>
+                <dd className="font-semibold text-blue-600">₹{(view.amount / 100).toFixed(2)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Status</dt>

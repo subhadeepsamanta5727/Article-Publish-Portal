@@ -48,7 +48,6 @@ const articleSchema = new mongoose.Schema(
     packageId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Package",
-      required: true,
       index: true,
     },
 
@@ -56,7 +55,11 @@ const articleSchema = new mongoose.Schema(
      * Preserve the package price at creation so a later package-price
      * change cannot alter an already-created submission's checkout amount.
      */
-    packagePrice: { type: Number, required: true, min: 0 },
+    packagePrice: { type: Number, default: 0, min: 0 },
+    packageCostPrice: { type: Number, default: 0, min: 0 },
+    publisherId: { type: mongoose.Schema.Types.ObjectId, ref: "Publisher", default: null, index: true },
+    publisherPrice: { type: Number, default: 0, min: 0 },
+    publisherCostPrice: { type: Number, default: 0, min: 0 },
     currency: { type: String, default: "INR", uppercase: true },
 
     /**
@@ -109,6 +112,7 @@ const articleSchema = new mongoose.Schema(
      * Displayed as clickable link in PDFs
      */
     refLink: { type: String, default: "" },
+    articlePdfUrl: { type: String, default: "" },
 
     /**
      * Full article content/body text
@@ -135,9 +139,11 @@ const articleSchema = new mongoose.Schema(
         "payment_pending",
         "writing",
         "submitted",
-        "Under Processing",
-        "Published",
-        "Failed",
+        "under_review",
+        "pending",
+        "delivered",
+        "accepted",
+        "rejected",
       ],
       default: "draft",
       index: true,
@@ -148,6 +154,9 @@ const articleSchema = new mongoose.Schema(
      * Null until user submits the article
      */
     submittedAt: { type: Date, default: null },
+    deliveryNote: { type: String, default: "", trim: true },
+    deliveryLink: { type: String, default: "", trim: true },
+    deliveredAt: { type: Date, default: null },
 
     /**
      * Payment status separate from main status

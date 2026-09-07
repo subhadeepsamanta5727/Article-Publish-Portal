@@ -92,7 +92,8 @@ const downloadAdminPaymentPDF = asyncHandler(async (req, res) => {
 
   const payment = await Payment.findOne({ _id: paymentId })
     .populate("articleIds", "articleId articleTitle packageId")
-    .populate("packageSummary.packageId", "packageName category");
+    .populate("packageSummary.packageId", "packageName category")
+    .populate("publisherSummary.publisherId", "publisherName category");
 
   if (!payment) {
     throw new ApiError(404, "Payment not found");
@@ -115,7 +116,7 @@ const downloadAdminPaymentPDF = asyncHandler(async (req, res) => {
 });
 
 // ======================================
-// ADMIN COMPLETE ARTICLE PDF
+// ADMIN ARTICLE CONTENT PDF
 // ======================================
 
 const downloadAdminArticlePDF = asyncHandler(
@@ -133,14 +134,9 @@ const downloadAdminArticlePDF = asyncHandler(
       );
     }
 
-    const payment = await Payment.findOne({
-      articleIds: article._id,
-    });
-
     await generateArticlePDF({
       article,
-      payment,
-      includePayment: true,
+      includePayment: false,
       includeContent: true,
       includeImages: true,
       includeRefLink: true,

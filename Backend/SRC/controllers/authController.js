@@ -1,4 +1,4 @@
-//import(module)
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
 const User = require("../Models/User");
@@ -12,6 +12,26 @@ const {
   generateRefreshToken,
   verifyRefreshToken,
 } = require("../utils/token");
+
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  path: "/api/auth",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const setAuthCookies = (res, refreshToken) => {
+  res.cookie("seo_refresh_token", refreshToken, refreshCookieOptions);
+  res.cookie("seo_csrf_token", crypto.randomBytes(32).toString("hex"), {
+    secure: refreshCookieOptions.secure,
+    sameSite: "strict",
+    path: "/",
+    maxAge: refreshCookieOptions.maxAge,
+  });
+};
+
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 //register(Module)
 const register=asyncHandler(async(req,res)=>{
@@ -100,6 +120,9 @@ const login = asyncHandler(async (req, res) => {
   // Generate tokens
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
+  user.refreshTokenHash = hashToken(refreshToken);
+  await user.save();
+  setAuthCookies(res, refreshToken);
 
   const userResponse = user.toObject();
   delete userResponse.password;
@@ -110,7 +133,6 @@ const login = asyncHandler(async (req, res) => {
       {
         user: userResponse,
         accessToken,
-        refreshToken,
       },
       "Login successful"
     )
@@ -118,7 +140,7 @@ const login = asyncHandler(async (req, res) => {
 });
 //Refresh token(module)
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.seo_refresh_token;
 
   if (!refreshToken) {
     throw new ApiError(
@@ -138,7 +160,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
   }
 
-  const user = await User.findById(decoded.userId);
+  const user = await User.findById(decoded.userId).select("+refreshTokenHash");
 
   if (!user) {
     throw new ApiError(
@@ -154,7 +176,15 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
   }
 
+  if (!user.refreshTokenHash || user.refreshTokenHash !== hashToken(refreshToken)) {
+    throw new ApiError(401, "Refresh token has been rotated or revoked");
+  }
+
   const accessToken = generateAccessToken(user);
+  const rotatedRefreshToken = generateRefreshToken(user);
+  user.refreshTokenHash = hashToken(rotatedRefreshToken);
+  await user.save();
+  setAuthCookies(res, rotatedRefreshToken);
 
   res.status(200).json(
     new ApiResponse(
@@ -165,6 +195,21 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       "Access token refreshed"
     )
   );
+});
+
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.seo_refresh_token;
+  if (refreshToken) {
+    try {
+      const decoded = verifyRefreshToken(refreshToken);
+      await User.findByIdAndUpdate(decoded.userId, { $set: { refreshTokenHash: null } });
+    } catch {
+      // Clearing the cookies is sufficient when the refresh token is already invalid.
+    }
+  }
+  res.clearCookie("seo_refresh_token", refreshCookieOptions);
+  res.clearCookie("seo_csrf_token", { ...refreshCookieOptions, httpOnly: false, path: "/" });
+  res.status(200).json(new ApiResponse(200, null, "Logged out successfully"));
 });
 //Get current user
 const getMe = asyncHandler(async (req, res) => {
@@ -191,5 +236,6 @@ module.exports = {
   register,
   login,
   refreshAccessToken,
+  logout,
   getMe,
 };

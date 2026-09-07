@@ -36,6 +36,7 @@ export default function RegisterPage() {
     <AuthLayout
       title="Start publishing"
       subtitle="Create your SEO author account."
+      lightOnly
     >
       <form onSubmit={submit} className="mt-8 space-y-4">
         <label className="block label">

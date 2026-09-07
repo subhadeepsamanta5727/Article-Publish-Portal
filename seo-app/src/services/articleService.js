@@ -7,8 +7,8 @@ import api from "../lib/api";
  * All functions return Promise with API response data
  * 
  * Endpoints Reference:
- * - Backend base URL: http://localhost:5000/api
- * - All requests include JWT token from localStorage (set in api.js interceptor)
+ * - Backend base URL: VITE_API_URL at build time, with a localhost development fallback
+ * - All requests include the short-lived access token from localStorage (set in api.js interceptor)
  */
 
 /**
@@ -63,6 +63,14 @@ export const getArticle = (id) => api.get(`/articles/${id}`);
  */
 export const updateArticle = (id, payload) =>
   api.put(`/articles/${id}`, payload);
+
+export const uploadArticleFile = (id, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/articles/${id}/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 
 /**
  * Submit article for review

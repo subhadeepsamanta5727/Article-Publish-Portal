@@ -32,14 +32,14 @@ export default function AdminDashboardPage() {
   ];
   return (
     <div className="mx-auto max-w-6xl">
-      <p className="text-sm font-semibold text-red-600">ADMINISTRATION</p>
+      <p className="text-sm font-semibold text-blue-600">ADMINISTRATION</p>
       <h1 className="mt-1 text-3xl font-bold">Admin dashboard</h1>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map(([Icon, label, value]) => (
           <div className="card p-5" key={label}>
-            <Icon className="text-red-600" size={21} />
+            <Icon className="text-blue-600" size={21} />
             <p className="mt-5 text-sm text-slate-500">{label}</p>
-            <p className="mt-1 text-3xl font-bold text-red-700">{value}</p>
+            <p className="mt-1 text-3xl font-bold text-blue-700">{value}</p>
           </div>
         ))}
       </div>
