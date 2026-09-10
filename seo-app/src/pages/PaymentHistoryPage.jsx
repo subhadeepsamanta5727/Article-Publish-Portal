@@ -63,6 +63,8 @@ export default function PaymentHistoryPage() {
 
   // Load payments when component mounts or role changes
   useEffect(() => {
+    // The loader updates fetch state around an asynchronous request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);

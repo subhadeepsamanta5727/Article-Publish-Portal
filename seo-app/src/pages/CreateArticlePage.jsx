@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-
 import {
   ArrowDown,
   ArrowDownUp,
@@ -38,6 +36,12 @@ export default function CreateArticlePage() {
   const [expandedPublishers, setExpandedPublishers] = useState({});
   const [catalogueMode, setCatalogueMode] = useState("packages");
   const [priceSort, setPriceSort] = useState("asc");
+  const [publisherFilters, setPublisherFilters] = useState({
+    category: "",
+    subCategory: "",
+    tag: "",
+    maxPrice: "",
+  });
   const [quantity, setQuantity] = useState(1);
 
   const [step, setStep] = useState(1);
@@ -112,8 +116,36 @@ export default function CreateArticlePage() {
 
   const catalogueItems = useMemo(() => {
     const source = catalogueMode === "packages" ? packages : publishers;
-    return [...source].sort((first, second) => (Number(first.price || 0) - Number(second.price || 0)) * (priceSort === "asc" ? 1 : -1));
-  }, [catalogueMode, packages, publishers, priceSort]);
+    const filteredSource = catalogueMode === "publishers"
+      ? source.filter((publisher) => (
+        (!publisherFilters.category || (publisherFilters.category === "__empty__" ? !publisher.category : publisher.category === publisherFilters.category))
+        && (!publisherFilters.subCategory || (publisherFilters.subCategory === "__empty__" ? !publisher.subCategory : publisher.subCategory === publisherFilters.subCategory))
+        && (!publisherFilters.tag || (publisherFilters.tag === "__empty__"
+          ? !publisher.tag
+          : String(publisher.tag || "").split(",").map((tag) => tag.trim()).includes(publisherFilters.tag)))
+        && (!publisherFilters.maxPrice || Number(publisher.price || 0) <= Number(publisherFilters.maxPrice))
+      ))
+      : source;
+    return [...filteredSource].sort((first, second) => (Number(first.price || 0) - Number(second.price || 0)) * (priceSort === "asc" ? 1 : -1));
+  }, [catalogueMode, packages, publishers, priceSort, publisherFilters]);
+
+  const publisherFilterOptions = useMemo(() => {
+    const values = (field, splitValues = false) => {
+      const fieldValues = [...new Set(publishers
+        .flatMap((publisher) => splitValues
+          ? String(publisher[field] || "").split(",").map((value) => value.trim()).filter(Boolean)
+          : publisher[field])
+        .filter(Boolean))].sort();
+      return publishers.some((publisher) => !publisher[field])
+        ? [...fieldValues, "__empty__"]
+        : fieldValues;
+    };
+    return {
+      category: values("category"),
+      subCategory: values("subCategory"),
+      tag: values("tag", true),
+    };
+  }, [publishers]);
 
   // ======================================
   // TOTAL
@@ -308,6 +340,15 @@ export default function CreateArticlePage() {
         state: {
           articleIds,
           totalAmount,
+          orderItems: selectedItems.map((item) => ({
+            name: catalogueMode === "packages" ? item.packageName : item.publisherName,
+            type: catalogueMode === "packages" ? "Package" : "Publisher",
+            category: item.category || "",
+            subCategory: item.subCategory || "",
+            tag: item.tag || "",
+            price: Number(item.price || 0),
+            quantity,
+          })),
         },
       });
     } catch (error) {
@@ -409,12 +450,63 @@ export default function CreateArticlePage() {
                 type="button"
                 role="tab"
                 aria-selected={catalogueMode === "publishers"}
-                onClick={() => setCatalogueMode("publishers")}
+                onClick={() => {
+                  setPublisherFilters({ category: "", subCategory: "", tag: "", maxPrice: "" });
+                  setCatalogueMode("publishers");
+                }}
                 className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${catalogueMode === "publishers" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
               >
                 Individual publishers
               </button>
             </div>
+
+            {catalogueMode === "publishers" && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-5">
+                {[
+                  ["category", "Category", "categories"],
+                  ["subCategory", "Sub-category", "sub-categories"],
+                  ["tag", "Tag", "tags"],
+                ].map(([field, label, pluralLabel]) => (
+                  <label className="block label" key={field}>
+                    {label}
+                    <select
+                      className="field"
+                      value={publisherFilters[field]}
+                      onChange={(event) => setPublisherFilters((current) => ({ ...current, [field]: event.target.value }))}
+                    >
+                      <option value="">All {pluralLabel}</option>
+                      {publisherFilterOptions[field].map((option) => (
+                        <option key={option} value={option}>{option === "__empty__" ? "Uncategorized" : option}</option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+                <label className="block label">
+                  Budget up to (INR)
+                  <input
+                    className="field"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Any price"
+                    value={publisherFilters.maxPrice}
+                    onChange={(event) => setPublisherFilters((current) => ({ ...current, maxPrice: event.target.value }))}
+                  />
+                </label>
+                <div className="block label">
+                  <span>Price:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPriceSort((current) => current === "asc" ? "desc" : "asc")}
+                    className="btn-secondary mt-1.5 min-h-10 w-full justify-center px-3 py-2"
+                    aria-label={`Sort publishers by price ${priceSort === "asc" ? "descending" : "ascending"}`}
+                  >
+                    <ArrowDownUp size={15} />
+                    {priceSort === "asc" ? "Low to high" : "High to low"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ======================================
                 LOADING
@@ -426,7 +518,7 @@ export default function CreateArticlePage() {
               </p>
             ) : catalogueItems.length === 0 ? (
               <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-                No active {catalogueMode === "packages" ? "publication packages" : "individual publishers"} are available.
+                No {catalogueMode === "packages" ? "active publication packages" : "publishers matching these filters"} are available.
               </p>
             ) : (
               <>
@@ -434,7 +526,8 @@ export default function CreateArticlePage() {
                     PACKAGE LIST
                 ====================================== */}
 
-                <div className="mt-5 flex items-center justify-end">
+                {catalogueMode === "packages" && <div className="mt-5 flex items-center justify-end">
+                  <span className="mr-2 text-sm font-semibold text-slate-700">Price:</span>
                   <button
                     type="button"
                     onClick={() => setPriceSort((current) => current === "asc" ? "desc" : "asc")}
@@ -442,9 +535,9 @@ export default function CreateArticlePage() {
                     aria-label={`Sort ${catalogueMode === "packages" ? "packages" : "publishers"} by price ${priceSort === "asc" ? "descending" : "ascending"}`}
                   >
                     <ArrowDownUp size={15} />
-                    Price: {priceSort === "asc" ? "Low to high" : "High to low"}
+                    {priceSort === "asc" ? "Low to high" : "High to low"}
                   </button>
-                </div>
+                </div>}
 
                 <div className="mt-3 max-h-[52vh] space-y-3 overflow-y-auto pr-2">
                   {catalogueItems.map((pkg) => {
@@ -461,7 +554,7 @@ export default function CreateArticlePage() {
                     return (
                       <div
                         key={pkg._id}
-                        className={`rounded-xl border p-4 transition-colors ${
+                        className={`rounded-xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_8px_22px_rgba(37,99,235,0.12)] ${
                           isSelected
                             ? "border-blue-300 bg-blue-50/50"
                             : "border-slate-200"
@@ -486,13 +579,30 @@ export default function CreateArticlePage() {
                           {/* PACKAGE INFO */}
 
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold">
-                              {isPublisher ? pkg.publisherName : pkg.packageName}
-                            </p>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                              {pkg.category}
-                            </p>
+                            {isPublisher ? (
+                              <div className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 font-bold text-slate-900">
+                                  {pkg.publisherName}
+                                </p>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                  <span>Category: {pkg.category || "-"}</span>
+                                  <span>Sub-category: {pkg.subCategory || "-"}</span>
+                                </div>
+                                <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100">
+                                  Tag: {String(pkg.tag || "-").split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3).join(", ") || "-"}
+                                  {String(pkg.tag || "").split(",").filter((tag) => tag.trim()).length > 3 && " ..."}
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="font-bold">
+                                  {pkg.packageName}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-500">
+                                  {pkg.category}
+                                </p>
+                              </>
+                            )}
                           </div>
 
                           {/* PRICE */}
@@ -527,25 +637,48 @@ export default function CreateArticlePage() {
                         {isExpanded && (
                           <div className="mt-4 border-t border-slate-200 pt-4">
                             <div className="space-y-3 text-sm text-slate-600">
-                              <div>
-                                  <p className="font-semibold text-slate-900">
-                                    {isPublisher ? "Publisher details" : "Package details"}
-                                </p>
-
-                                <p className="mt-1">
-                                  <span className="font-medium">
-                                    Category:
-                                  </span>{" "}
-                                  {pkg.category}
-                                </p>
-                              </div>
+                              {!isPublisher && (
+                                <div>
+                                  <p className="font-semibold text-slate-900">Package details</p>
+                                  <p className="mt-1">
+                                    <span className="font-medium">Category:</span>{" "}
+                                    {pkg.category || "-"}
+                                  </p>
+                                </div>
+                              )}
 
                               {/* MEDIA COVERAGE */}
 
                               {isPublisher ? (
                                 <div className="space-y-2">
-                                  {pkg.website && <a href={pkg.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Publisher website</a>}
-                                  {pkg.sampleReportLink && <a href={pkg.sampleReportLink} target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:underline">View sample report</a>}
+                                  <div>
+                                    <p className="font-semibold text-slate-900">All tags</p>
+                                    <div className="mt-1 flex flex-wrap gap-2">
+                                      {String(pkg.tag || "").split(",").map((tag) => tag.trim()).filter(Boolean).map((tag) => (
+                                        <span key={tag} className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                      {!pkg.tag && <span>-</span>}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-slate-900">Publisher links</p>
+                                    {pkg.website ? (
+                                      <a href={pkg.website} target="_blank" rel="noopener noreferrer" className="block rounded-lg px-2 py-1 text-blue-600 transition hover:bg-blue-50 hover:pl-3 hover:text-blue-800 hover:underline">
+                                        Website: {pkg.website}
+                                      </a>
+                                    ) : (
+                                      <p>Website: -</p>
+                                    )}
+                                    {pkg.sampleReportLink ? (
+                                      <a href={pkg.sampleReportLink} target="_blank" rel="noopener noreferrer" className="block rounded-lg px-2 py-1 text-blue-600 transition hover:bg-blue-50 hover:pl-3 hover:text-blue-800 hover:underline">
+                                        Reference link: {pkg.sampleReportLink}
+                                      </a>
+                                    ) : (
+                                      <p>Reference link: -</p>
+                                    )}
+                                  </div>
                                 </div>
                               ) : pkg.mediaCoverage?.length > 0 ? (
                                 <div>
@@ -566,7 +699,7 @@ export default function CreateArticlePage() {
                                               }
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="inline-flex items-center gap-2 text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                                              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-blue-600 transition hover:bg-blue-50 hover:pl-3 hover:text-blue-800 hover:underline"
                                             >
                                               {
                                                 media.publisherName
@@ -614,26 +747,6 @@ export default function CreateArticlePage() {
                   })}
                 </div>
 
-                {/* ======================================
-                    QUANTITY
-                ====================================== */}
-
-                <label className="mt-6 block max-w-xs text-sm font-semibold">
-                  Article quantity
-
-                  <input
-                    className="field mt-2"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={quantity}
-                    onChange={(event) =>
-                      setQuantity(
-                        Number(event.target.value) || 0
-                      )
-                    }
-                  />
-                </label>
               </>
             )}
           </section>
@@ -643,7 +756,7 @@ export default function CreateArticlePage() {
             NAVIGATION BUTTONS
         ====================================== */}
 
-        <div className="sticky bottom-0 z-20 -mx-2 flex justify-between gap-3 border-t border-slate-200 bg-white/95 px-2 py-4 backdrop-blur sm:-mx-4 sm:px-4">
+        <div className="sticky bottom-0 z-20 -mx-2 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-2 py-4 backdrop-blur sm:-mx-4 sm:px-4">
           {/* BACK / CANCEL */}
 
           {step === 1 ? (
@@ -664,6 +777,24 @@ export default function CreateArticlePage() {
 
               Back
             </button>
+          )}
+
+          {step === 2 && (
+            <label className="flex flex-1 items-center justify-center gap-2 text-sm font-semibold text-slate-700">
+              <span className="hidden sm:inline">Article quantity</span>
+              <span className="sm:hidden">Qty</span>
+              <input
+                className="field mt-0 w-20 px-2.5 py-2 text-center"
+                type="number"
+                min="1"
+                step="1"
+                value={quantity}
+                onChange={(event) =>
+                  setQuantity(Number(event.target.value) || 0)
+                }
+                aria-label="Article quantity"
+              />
+            </label>
           )}
 
           {/* NEXT / SUBMIT */}

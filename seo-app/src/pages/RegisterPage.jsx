@@ -22,7 +22,8 @@ export default function RegisterPage() {
     if (form.password !== form.confirmPassword) { toast.error("Passwords do not match."); return; }
     setBusy(true);
     try {
-      const { confirmPassword, ...payload } = form;
+      const payload = { ...form };
+      delete payload.confirmPassword;
       const response = await register(payload);
       toast.success(response.message);
       navigate("/login");

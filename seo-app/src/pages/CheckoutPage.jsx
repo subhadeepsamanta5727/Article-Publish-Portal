@@ -19,6 +19,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const articleIds = state?.articleIds || [];
+  const orderItems = state?.orderItems || [];
   const total = Number(state?.totalAmount || 0);
   
   const pay = async () => {
@@ -43,7 +44,7 @@ export default function CheckoutPage() {
         order_id: order.orderId,
         handler: async (payment) => {
           try {
-            const verified = await verifyPayment({
+            await verifyPayment({
               razorpayOrderId: payment.razorpay_order_id,
               razorpayPaymentId: payment.razorpay_payment_id,
               razorpaySignature: payment.razorpay_signature,
@@ -64,5 +65,5 @@ export default function CheckoutPage() {
     finally { setBusy(false); }
   };
   if (!articleIds.length) return <div className="mx-auto max-w-xl card p-8 text-center"><h1 className="text-2xl font-bold">No checkout is ready</h1><p className="mt-2 text-slate-500">Select packages before continuing to payment.</p><Link className="btn-primary mt-6" to="/articles/new">Choose packages</Link></div>;
-  return <div className="mx-auto max-w-3xl"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600" to="/articles/new"><ArrowLeft size={16} /> Back to package selection</Link><div className="card mt-5 p-6 sm:p-8"><PackageCheck className="text-blue-600" size={30} /><p className="mt-5 text-sm font-semibold text-blue-600">CHECKOUT</p><h1 className="mt-1 text-3xl font-bold">Review your publication order</h1><p className="mt-2 text-slate-500">One secure payment unlocks all {articleIds.length} article submissions.</p><div className="mt-7 rounded-xl bg-slate-50 p-5"><div className="flex justify-between text-sm"><span>Article quantity</span><span className="font-semibold">{articleIds.length}</span></div><div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-lg"><span className="font-bold">Total</span><span className="font-bold text-blue-700">₹{total.toFixed(2)}</span></div><p className="mt-3 text-xs text-slate-500">The backend recalculates the final amount before Razorpay opens.</p></div><button disabled={busy} onClick={pay} className="btn-primary mt-6 w-full"><CreditCard size={18} />{busy ? "Preparing payment..." : `Pay ₹${total.toFixed(2)}`}</button></div></div>;
+  return <div className="mx-auto max-w-3xl"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600" to="/articles/new"><ArrowLeft size={16} /> Back to package selection</Link><div className="card mt-5 p-6 sm:p-8"><PackageCheck className="text-blue-600" size={30} /><p className="mt-5 text-sm font-semibold text-blue-600">CHECKOUT</p><h1 className="mt-1 text-3xl font-bold">Review your publication order</h1><p className="mt-2 text-slate-500">One secure payment unlocks all {articleIds.length} article submissions.</p>{orderItems.length > 0 && <div className="mt-7 space-y-3"><h2 className="text-lg font-bold">Selected publications</h2>{orderItems.map((item, index) => <div key={`${item.name}-${index}`} className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/40"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold">{item.name}</p><p className="mt-1 text-xs font-semibold uppercase tracking-wide text-blue-600">{item.type}</p><p className="mt-2 text-sm text-slate-500">{item.category || "-"}{item.subCategory ? ` · ${item.subCategory}` : ""}{item.tag ? ` · ${item.tag}` : ""}</p></div><p className="font-bold text-blue-700">₹{Number(item.price || 0).toFixed(2)}</p></div><p className="mt-2 text-sm text-slate-500">Quantity: {item.quantity}</p></div>)}</div>}<div className="mt-7 rounded-xl bg-slate-50 p-5"><div className="flex justify-between text-sm"><span>Article quantity</span><span className="font-semibold">{articleIds.length}</span></div><div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-lg"><span className="font-bold">Total</span><span className="font-bold text-blue-700">₹{total.toFixed(2)}</span></div><p className="mt-3 text-xs text-slate-500">The backend recalculates the final amount before Razorpay opens.</p></div><button disabled={busy} onClick={pay} className="btn-primary mt-6 w-full"><CreditCard size={18} />{busy ? "Preparing payment..." : `Pay ₹${total.toFixed(2)}`}</button></div></div>;
 }

@@ -14,7 +14,7 @@ const mongoose = require("mongoose");
  * - packagePrice: Preserved price at submission time (prevents price changes from affecting existing submissions)
  * - author: Article author details (name, email, phone)
  * - Article Content: title, keywords, abstract, content, images, refLink
- * - status: Workflow status (draft → payment_pending → writing → submitted → under_review → published/rejected)
+ * - status: Workflow status (draft → payment_pending → writing → submitted → pending → delivered/Failed)
  * 
  * Timestamps: Auto-updated createdAt, updatedAt fields
  */
@@ -128,9 +128,9 @@ const articleSchema = new mongoose.Schema(
      * - payment_pending: Awaiting payment verification
      * - writing: User is writing/editing article
      * - submitted: Article submitted for review
-     * - Under Processing: Admin reviewing article
-     * - Published: Article accepted
-     * - Failed: Article rejected
+    * - pending: Awaiting admin delivery
+    * - delivered: Delivery completed
+    * - Failed: Admin marked the submission as failed
      */
     status: {
       type: String,
@@ -139,11 +139,9 @@ const articleSchema = new mongoose.Schema(
         "payment_pending",
         "writing",
         "submitted",
-        "under_review",
         "pending",
         "delivered",
-        "accepted",
-        "rejected",
+        "Failed",
       ],
       default: "draft",
       index: true,
@@ -156,6 +154,9 @@ const articleSchema = new mongoose.Schema(
     submittedAt: { type: Date, default: null },
     deliveryNote: { type: String, default: "", trim: true },
     deliveryLink: { type: String, default: "", trim: true },
+    deliveryLinks: { type: [String], default: [] },
+    deliveryFileUrl: { type: String, default: "", trim: true },
+    deliveryFileName: { type: String, default: "", trim: true },
     deliveredAt: { type: Date, default: null },
 
     /**

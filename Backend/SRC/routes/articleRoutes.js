@@ -15,7 +15,7 @@
  * Note: Article submission is tied to payment workflow
  * - User must pay before submitting article for review
  * - Payment changes status to "writing"
- * - Submit endpoint changes status to "submitted"
+ * - Submit endpoint changes status to "pending"
  */
 const express = require("express");
 
@@ -109,13 +109,13 @@ router.get(
  * @route POST /articles/:articleId/submit
  * @authentication Required (JWT token)
  * @param {string} articleId - Article ID to submit
- * @returns {Object} Updated article with status = "submitted"
+ * @returns {Object} Updated article with status = "pending"
  * 
  * Workflow:
  * 1. User pays for article (status: payment_pending → writing)
  * 2. User completes article content, images, refLink
  * 3. User clicks submit
- * 4. Status changes to "submitted"
+ * 4. Status changes to "pending"
  * 5. Article appears in admin review queue
  * 
  * Validation:

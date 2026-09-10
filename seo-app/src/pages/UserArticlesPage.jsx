@@ -19,7 +19,7 @@ export default function UserArticlesPage({ mode }) {
   const visible = articles.filter((a) =>
     mode === "draft"
       ? ["draft", "writing", "payment_pending"].includes(a.status)
-      : ["submitted", "under_review", "pending", "delivered", "accepted", "rejected"].includes(
+      : ["submitted", "pending", "delivered", "Failed"].includes(
           a.status,
         ),
   );
@@ -98,10 +98,11 @@ export default function UserArticlesPage({ mode }) {
                     </button>
                   )}
                 </div>
-                {article.status === "delivered" && (article.deliveryNote || article.deliveryLink) && (
+                {article.status === "delivered" && (article.deliveryNote || article.deliveryLink || article.deliveryLinks?.length || article.deliveryFileUrl) && (
                   <div className="mt-3 w-full rounded-lg bg-blue-50 p-3 text-sm text-blue-950">
                     {article.deliveryNote && <p>{article.deliveryNote}</p>}
-                    {article.deliveryLink && <a className="mt-1 block font-semibold underline" href={article.deliveryLink} target="_blank" rel="noreferrer">{article.deliveryLink}</a>}
+                    {[...(article.deliveryLinks || []), ...(article.deliveryLink && !article.deliveryLinks?.includes(article.deliveryLink) ? [article.deliveryLink] : [])].map((link) => <a key={link} className="mt-1 block break-all font-semibold underline" href={link} target="_blank" rel="noreferrer">{link}</a>)}
+                    {article.deliveryFileUrl && <a className="mt-2 block font-semibold underline" href={article.deliveryFileUrl} target="_blank" rel="noreferrer">Download {article.deliveryFileName || "delivery file"}</a>}
                   </div>
                 )}
                 {article.articlePdfUrl && (

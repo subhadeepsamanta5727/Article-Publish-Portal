@@ -10,6 +10,8 @@ import { ArticleEditorPage, CheckoutPage, CreateArticlePage } from "./features/a
 import UserArticlesPage from "./pages/UserArticlesPage";
 import PaymentHistoryPage from "./pages/PaymentHistoryPage";
 import { AdminPackagesPage, AdminPage, AdminPublishersPage } from "./features/admin";
+import AdminTestimonialsPage from "./pages/AdminTestimonialsPage";
+import AdminMediaPartnersPage from "./pages/AdminMediaPartnersPage";
 import { DashboardPage } from "./features/dashboard";
 import { AppShell, ThemeProvider } from "./shared";
 import LandingPage from "./pages/LandingPage";
@@ -97,6 +99,22 @@ function App() {
                 element={
                   <ProtectedRoute adminOnly>
                     <AdminPublishersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/testimonials"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminTestimonialsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/media-partners"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminMediaPartnersPage />
                   </ProtectedRoute>
                 }
               />

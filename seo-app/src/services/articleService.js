@@ -31,7 +31,7 @@ export const createArticle = (payload) => api.post("/articles", payload);
 
 /**
  * Fetch all articles for current user
- * Returns articles with statuses: draft, writing, submitted, under_review, published, failed
+ * Returns articles with statuses: draft, payment_pending, writing, submitted, pending, delivered, Failed
  * 
  * @returns {Promise} Array of articles with populated paymentId and packageId
  * 
@@ -74,11 +74,11 @@ export const uploadArticleFile = (id, file) => {
 
 /**
  * Submit article for review
- * Changes status from "writing" to "submitted"
+ * Changes status from "writing" to "pending"
  * Called after payment successful
  * 
  * @param {string} id - Article ID
- * @returns {Promise} Updated article with submitted status
+ * @returns {Promise} Updated article with pending status
  * 
  * POST /articles/:id/submit
  */

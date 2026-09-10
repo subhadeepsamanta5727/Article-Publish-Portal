@@ -8,7 +8,7 @@ import api from "../lib/api";
  * 
  * Admin Capabilities:
  * - View and manage all articles in the system
- * - Update article review status (draft → submitted → published/failed)
+ * - Update article review status (draft → submitted → pending → delivered/Failed)
  * - Download articles with full content + images + payment details
  * - View all user payments
  * - Manage article packages (create, update, delete, availability)
@@ -59,9 +59,9 @@ export const getAdminStats = () => api.get("/admin/stats");
  *   - "payment_pending": Awaiting payment
  *   - "writing": User writing article (after payment)
  *   - "submitted": Submitted for admin review
- *   - "Under Processing": Admin reviewing
- *   - "Published": Article accepted
- *   - "Failed": Article rejected
+ *   - "pending": Awaiting delivery
+ *   - "delivered": Delivery completed
+ *   - "Failed": Article failed
  * @returns {Promise} Updated article object with new status
  * 
  * PATCH /admin/articles/:id/status
@@ -69,6 +69,14 @@ export const getAdminStats = () => api.get("/admin/stats");
  */
 export const setArticleStatus = (id, status, details = {}) =>
   api.patch(`/admin/articles/${id}/status`, { status, ...details });
+
+export const deliverArticle = (id, { deliveryNote, deliveryLinks, file }) => {
+  const formData = new FormData();
+  formData.append("deliveryNote", deliveryNote || "");
+  formData.append("deliveryLinks", JSON.stringify(deliveryLinks || []));
+  if (file) formData.append("file", file);
+  return api.post(`/admin/articles/${id}/deliver`, formData);
+};
 
 /**
  * Fetch single article details for admin
@@ -193,3 +201,19 @@ export const setPublisherAvailability = (publisherId, isActive) =>
 
 export const deleteAdminPublisher = (publisherId) =>
   api.delete(`/admin/publishers/${publisherId}`);
+
+export const getAdminTestimonials = () => api.get("/admin/testimonials");
+
+export const createAdminTestimonial = (payload) =>
+  api.post("/admin/testimonials", payload);
+
+export const updateAdminTestimonial = (testimonialId, payload) =>
+  api.put(`/admin/testimonials/${testimonialId}`, payload);
+
+export const deleteAdminTestimonial = (testimonialId) =>
+  api.delete(`/admin/testimonials/${testimonialId}`);
+
+export const getAdminMediaPartners = () => api.get("/admin/media-partners");
+export const createAdminMediaPartner = (payload) => api.post("/admin/media-partners", payload, { headers: { "Content-Type": "multipart/form-data" } });
+export const updateAdminMediaPartner = (partnerId, payload) => api.put(`/admin/media-partners/${partnerId}`, payload, { headers: { "Content-Type": "multipart/form-data" } });
+export const deleteAdminMediaPartner = (partnerId) => api.delete(`/admin/media-partners/${partnerId}`);

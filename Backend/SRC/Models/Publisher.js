@@ -14,12 +14,29 @@ const publisherSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     category: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       index: true,
+    },
+
+    subCategory: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    tag: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    followers: {
+      type: String,
+      default: "",
+      trim: true,
     },
 
     website: {

@@ -4,6 +4,7 @@ const {
   getSubmittedArticles,
   getArticleDetails,
   updateArticleStatus,
+  deliverArticle,
   getPaymentDetails,
   getDashboardStats,
 } = require("../controllers/adminController");
@@ -21,6 +22,19 @@ const {
   setPublisherAvailability,
   deletePublisher,
 } = require("../controllers/publisherController");
+const {
+  getAllTestimonials,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+} = require("../controllers/testimonialController");
+const {
+  getAllMediaPartners,
+  createMediaPartner,
+  updateMediaPartner,
+  deleteMediaPartner,
+} = require("../controllers/mediaPartnerController");
+const { logoUpload } = require("../controllers/mediaPartnerController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorizeRoles = require("../middlewares/roleMiddleware");
@@ -53,6 +67,14 @@ router.post("/publishers", createPublisher);
 router.put("/publishers/:publisherId", updatePublisher);
 router.patch("/publishers/:publisherId/availability", setPublisherAvailability);
 router.delete("/publishers/:publisherId", deletePublisher);
+router.get("/testimonials", getAllTestimonials);
+router.post("/testimonials", createTestimonial);
+router.put("/testimonials/:testimonialId", updateTestimonial);
+router.delete("/testimonials/:testimonialId", deleteTestimonial);
+router.get("/media-partners", getAllMediaPartners);
+router.post("/media-partners", logoUpload.single("logo"), createMediaPartner);
+router.put("/media-partners/:partnerId", logoUpload.single("logo"), updateMediaPartner);
+router.delete("/media-partners/:partnerId", deleteMediaPartner);
 
 
 // Submitted articles
@@ -73,6 +95,10 @@ router.get(
 router.patch(
   "/articles/:articleId/status",
   updateArticleStatus
+);
+router.post(
+  "/articles/:articleId/deliver",
+  deliverArticle
 );
 
 

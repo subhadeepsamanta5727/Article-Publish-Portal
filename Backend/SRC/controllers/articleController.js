@@ -36,7 +36,7 @@ const uploadArticleAsset = [
     const article = await Article.findOne({ articleId: req.params.articleId, userId: req.user.userId });
     if (!article) throw new ApiError(404, "Article not found");
     if (!req.file) throw new ApiError(400, "Please select a file");
-    if (["submitted", "under_review", "pending", "delivered", "accepted"].includes(article.status)) {
+    if (["submitted", "pending", "delivered"].includes(article.status)) {
       throw new ApiError(400, "Article can no longer be edited");
     }
 
@@ -273,9 +273,9 @@ const updateArticle = asyncHandler(async (req, res) => {
     );
   }
 
-  // Don't allow editing submitted/accepted articles
+  // Don't allow editing submitted/delivered articles
   if (
-    ["submitted", "under_review", "pending", "delivered", "accepted"].includes(
+    ["submitted", "pending", "delivered"].includes(
       article.status
     )
   ) {
@@ -359,7 +359,7 @@ const submitArticle = asyncHandler(async (req, res) => {
 
   // Prevent duplicate submission
   if (
-    ["submitted", "under_review", "pending", "delivered", "accepted"].includes(
+    ["submitted", "pending", "delivered"].includes(
       article.status
     )
   ) {
@@ -369,7 +369,7 @@ const submitArticle = asyncHandler(async (req, res) => {
     );
   }
 
-  article.status = "submitted";
+  article.status = "pending";
 
   article.submittedAt = new Date();
 

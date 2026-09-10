@@ -44,7 +44,7 @@ const generatePublisherId = async () => {
 const getActivePublishers = asyncHandler(async (req, res) => {
   const publishers = await Publisher.find({ isActive: true })
     .select(
-      "publisherId publisherName category website sampleReportLink price currency",
+      "publisherId publisherName category subCategory tag followers website sampleReportLink price currency",
     )
     .sort({ category: 1, publisherName: 1 });
   res
@@ -65,6 +65,9 @@ const createPublisher = asyncHandler(async (req, res) => {
   const {
     publisherName,
     category = "",
+    subCategory = "",
+    tag = "",
+    followers = "",
     website = "",
     sampleReportLink = "",
     costPrice,
@@ -78,6 +81,9 @@ const createPublisher = asyncHandler(async (req, res) => {
     publisherId: await generatePublisherId(),
     publisherName,
     category,
+    subCategory,
+    tag,
+    followers,
     website,
     sampleReportLink,
     costPrice: Number(costPrice),
@@ -100,6 +106,9 @@ const updatePublisher = asyncHandler(async (req, res) => {
   [
     "publisherName",
     "category",
+    "subCategory",
+    "tag",
+    "followers",
     "website",
     "sampleReportLink",
     "currency",

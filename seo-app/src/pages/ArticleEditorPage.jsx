@@ -380,7 +380,7 @@ export default function ArticleEditorPage() {
   if (!article) return <p className="text-slate-500">Loading article…</p>;
   const canEdit =
     article.paymentStatus === "paid" &&
-    !["submitted", "under_review", "pending", "delivered", "accepted"].includes(article.status);
+    !["submitted", "pending", "delivered"].includes(article.status);
   const articlePrice = Number(article.packagePrice || 0).toFixed(2);
   return (
     <div className="mx-auto max-w-5xl">
@@ -395,7 +395,7 @@ export default function ArticleEditorPage() {
         </div>
         <StatusBadge status={article.status} />
       </div>
-        {article.status === "rejected" && (
+        {article.status === "Failed" && (
           <section className="card mt-7 border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
             This article was marked Failed by the admin. You can edit it and submit it again for review.
           </section>
@@ -662,7 +662,7 @@ export default function ArticleEditorPage() {
                 Close preview
               </button>
             )}
-            {["submitted", "under_review", "pending", "delivered", "accepted"].includes(
+            {["submitted", "pending", "delivered"].includes(
               article.status,
             ) && (
               <button

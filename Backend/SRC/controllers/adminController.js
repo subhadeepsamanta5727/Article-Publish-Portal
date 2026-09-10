@@ -1,16 +1,35 @@
 const Article = require("../Models/Article");
 const Payment = require("../Models/Payment");
 const User = require("../Models/User");
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
 
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
+const deliveryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
+
+const hasCloudinaryCredentials = () => [
+  process.env.CLOUDINARY_CLOUD_NAME,
+  process.env.CLOUDINARY_API_KEY,
+  process.env.CLOUDINARY_API_SECRET,
+].every((credential) => credential && !credential.startsWith("your_"));
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const getDashboardStats = asyncHandler(async (req, res) => {
   const [allArticles, publishedArticles, submittedArticles, allUsers, pendingPayments, writingArticles] = await Promise.all([
     Article.countDocuments(),
-    Article.countDocuments({ status: { $in: ["pending", "delivered", "accepted"] } }),
-    Article.countDocuments({ status: { $in: ["submitted", "under_review"] } }),
+    Article.countDocuments({ status: { $in: ["pending", "delivered"] } }),
+    Article.countDocuments({ status: "pending" }),
     User.countDocuments(),
     Article.countDocuments({ paymentStatus: "pending" }),
     Article.countDocuments({ status: "writing" }),
@@ -41,15 +60,13 @@ const getSubmittedArticles = asyncHandler(async (req, res) => {
         "payment_pending",
         "writing",
         "submitted",
-        "under_review",
         "pending",
         "delivered",
-        "accepted",
-        "rejected",
+        "Failed",
       ],
     },
   };
-  if (status && ["draft", "payment_pending", "writing", "submitted", "under_review", "pending", "delivered", "accepted", "rejected"].includes(status)) filter.status = status;
+  if (status && ["draft", "payment_pending", "writing", "submitted", "pending", "delivered", "Failed"].includes(status)) filter.status = status;
   if (authorName) filter["author.name"] = { $regex: authorName, $options: "i" };
 
   // Article ID search
@@ -91,6 +108,8 @@ const getSubmittedArticles = asyncHandler(async (req, res) => {
         "paymentId",
         "amount currency status razorpayOrderId razorpayPaymentId paidAt"
       )
+      .populate("packageId", "packageName category mediaCoverage")
+      .populate("publisherId", "publisherName category")
       .sort({
         submittedAt: -1,
       })
@@ -137,7 +156,9 @@ const getArticleDetails = asyncHandler(async (req, res) => {
     .populate(
       "paymentId",
       "amount currency status razorpayOrderId razorpayPaymentId paidAt createdAt"
-    );
+    )
+    .populate("packageId", "packageName category mediaCoverage")
+    .populate("publisherId", "publisherName category");
 
   if (!article) {
     throw new ApiError(
@@ -167,10 +188,9 @@ const updateArticleStatus = asyncHandler(
     const { status, deliveryNote = "", deliveryLink = "" } = req.body;
 
     const allowedStatuses = [
-      "under_review",
       "pending",
       "delivered",
-      "rejected",
+      "Failed",
     ];
 
     if (!allowedStatuses.includes(status)) {
@@ -195,15 +215,11 @@ const updateArticleStatus = asyncHandler(
       throw new ApiError(400, "Only pending articles can be marked as delivered");
     }
 
-    if (status !== "delivered" && !["writing", "submitted", "under_review", "pending"].includes(article.status)) {
+    if (status !== "delivered" && !["writing", "submitted", "pending"].includes(article.status)) {
       throw new ApiError(
         400,
         "Article cannot be reviewed in its current state"
       );
-    }
-
-    if (status === "delivered" && !deliveryNote.trim()) {
-      throw new ApiError(400, "A delivery note is required");
     }
 
     article.status = status;
@@ -225,6 +241,61 @@ const updateArticleStatus = asyncHandler(
     );
   }
 );
+
+const deliverArticle = [
+  deliveryUpload.single("file"),
+  asyncHandler(async (req, res) => {
+    const article = await Article.findOne({ articleId: req.params.articleId });
+    if (!article) throw new ApiError(404, "Article not found");
+    if (article.status !== "pending") {
+      throw new ApiError(400, "Only pending articles can be delivered");
+    }
+
+    let deliveryLinks = [];
+    if (req.body.deliveryLinks) {
+      try {
+        deliveryLinks = JSON.parse(req.body.deliveryLinks);
+      } catch {
+        throw new ApiError(400, "Delivery links must be valid JSON");
+      }
+    }
+    if (!Array.isArray(deliveryLinks)) {
+      throw new ApiError(400, "Delivery links must be an array");
+    }
+    deliveryLinks = deliveryLinks.map((link) => String(link).trim()).filter(Boolean);
+
+    if (req.file) {
+      if (!hasCloudinaryCredentials()) {
+        throw new ApiError(500, "Cloudinary credentials are missing. Add real CLOUDINARY values before uploading delivery files.");
+      }
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "seo-deliveries", resource_type: "raw" },
+          (error, result) => (error ? reject(error) : resolve(result)),
+        );
+        stream.end(req.file.buffer);
+      });
+      article.deliveryFileUrl = uploaded.secure_url;
+      article.deliveryFileName = req.file.originalname;
+    }
+
+    article.deliveryNote = String(req.body.deliveryNote || "").trim();
+    article.deliveryLinks = deliveryLinks;
+    article.deliveryLink = deliveryLinks[0] || "";
+    article.status = "delivered";
+    article.deliveredAt = new Date();
+    await article.save();
+
+    res.status(200).json(new ApiResponse(200, {
+      articleId: article.articleId,
+      status: article.status,
+      deliveryNote: article.deliveryNote,
+      deliveryLinks: article.deliveryLinks,
+      deliveryFileUrl: article.deliveryFileUrl,
+      deliveryFileName: article.deliveryFileName,
+    }, "Article delivered successfully"));
+  }),
+];
 
 
 // ======================================
@@ -273,5 +344,6 @@ module.exports = {
   getSubmittedArticles,
   getArticleDetails,
   updateArticleStatus,
+  deliverArticle,
   getPaymentDetails,
 };

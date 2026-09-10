@@ -1,4 +1,4 @@
-import { BookOpen, FilePlus2, FileText, Globe2, LayoutDashboard, LogOut, Menu, Moon, PackagePlus, Receipt, ShieldCheck, Sun, X } from "lucide-react";
+import { BookOpen, FilePlus2, FileText, Globe2, Images, LayoutDashboard, LogOut, Menu, MessageSquareQuote, Moon, PackagePlus, Receipt, ShieldCheck, Sun, X } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -13,12 +13,12 @@ export default function AppShell() {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [articleCounts, setArticleCounts] = useState({ total: 0, draft: 0, my: 0 });
-  useEffect(() => { if (user?.role !== "admin") getMyArticles().then((r) => { const articles = r.data || []; setArticleCounts({ total: articles.length, draft: articles.filter((a) => ["draft", "writing", "payment_pending"].includes(a.status)).length, my: articles.filter((a) => ["submitted", "under_review", "accepted", "rejected"].includes(a.status)).length }); }).catch(() => {}); }, [user]);
+  useEffect(() => { if (user?.role !== "admin") getMyArticles().then((r) => { const articles = r.data || []; setArticleCounts({ total: articles.length, draft: articles.filter((a) => ["draft", "writing", "payment_pending"].includes(a.status)).length, my: articles.filter((a) => ["submitted", "pending", "delivered", "Failed"].includes(a.status)).length }); }).catch(() => {}); }, [user]);
   const closeMenu = () => setMenuOpen(false);
   const navigation = <nav className="space-y-1">
     <NavLink className={linkClass} to="/dashboard" onClick={closeMenu}><LayoutDashboard size={18} />Dashboard <span className="ml-auto text-xs">({articleCounts.total})</span></NavLink>
     {user?.role !== "admin" && <><NavLink className={linkClass} to="/articles/my" onClick={closeMenu}><FileText size={18} />My articles <span className="ml-auto text-xs">({articleCounts.my})</span></NavLink><NavLink className={linkClass} to="/articles/drafts" onClick={closeMenu}><FileText size={18} />Draft articles <span className="ml-auto text-xs">({articleCounts.draft})</span></NavLink><NavLink className={linkClass} to="/articles/new" onClick={closeMenu}><FilePlus2 size={18} />New article</NavLink><NavLink className={linkClass} to="/payments" onClick={closeMenu}><Receipt size={18} />Payment history</NavLink></>}
-    {user?.role === "admin" && <><NavLink className={linkClass} to="/admin/review" onClick={closeMenu}><ShieldCheck size={18} />Review desk</NavLink><NavLink className={linkClass} to="/admin/packages" onClick={closeMenu}><PackagePlus size={18} />Packages & pricing</NavLink><NavLink className={linkClass} to="/admin/publishers" onClick={closeMenu}><Globe2 size={18} />Individual publishers</NavLink><NavLink className={linkClass} to="/payments" onClick={closeMenu}><Receipt size={18} />Payment history</NavLink></>}
+    {user?.role === "admin" && <><NavLink className={linkClass} to="/admin/review" onClick={closeMenu}><ShieldCheck size={18} />Review desk</NavLink><NavLink className={linkClass} to="/admin/packages" onClick={closeMenu}><PackagePlus size={18} />Packages & pricing</NavLink><NavLink className={linkClass} to="/admin/publishers" onClick={closeMenu}><Globe2 size={18} />Individual publishers</NavLink><NavLink className={linkClass} to="/admin/media-partners" onClick={closeMenu}><Images size={18} />Scrolling media</NavLink><NavLink className={linkClass} to="/admin/testimonials" onClick={closeMenu}><MessageSquareQuote size={18} />Testimonials</NavLink><NavLink className={linkClass} to="/payments" onClick={closeMenu}><Receipt size={18} />Payment history</NavLink></>}
   </nav>;
   const account = <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
     <button onClick={toggleTheme} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}{theme === "dark" ? "Light mode" : "Dark mode"}</button>

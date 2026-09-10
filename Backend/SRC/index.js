@@ -5,6 +5,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const packageRoutes = require("./routes/packageRoutes");
 const publisherRoutes = require("./routes/publisherRoutes");
+const testimonialRoutes = require("./routes/testimonialRoutes");
+const mediaPartnerRoutes = require("./routes/mediaPartnerRoutes");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -78,6 +80,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/packages", packageRoutes);
 app.use("/api/publishers", publisherRoutes);
+app.use("/api/testimonials", testimonialRoutes);
+app.use("/api/media-partners", mediaPartnerRoutes);
 app.use(
   "/api/payments",
   paymentRoutes
