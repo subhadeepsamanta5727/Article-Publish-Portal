@@ -3,41 +3,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
-const starterTestimonials = [
-  {
-    name: "Maya Chen",
-    role: "Content strategist",
-    company: "Northstar Studio",
-    avatar: "https://i.pravatar.cc/160?img=47",
-    quote: "SEO gave our ideas a clear path to publication. We always know what is happening next.",
-  },
-  {
-    name: "Jon Bell",
-    role: "Founder",
-    company: "Bell & Co.",
-    avatar: "https://i.pravatar.cc/160?img=12",
-    quote: "The editorial workflow feels calm and professional, even when we are moving quickly.",
-  },
-  {
-    name: "Ava Singh",
-    role: "Marketing lead",
-    company: "Brightwell",
-    avatar: "https://i.pravatar.cc/160?img=32",
-    quote: "We can turn expert knowledge into polished articles without losing momentum or visibility.",
-  },
-];
-
 const getActiveTestimonials = asyncHandler(async (req, res) => {
-  let testimonials = await Testimonial.find({ isActive: true }).sort({ createdAt: 1 });
-
-  if (!testimonials.length) {
-    const admin = await require("../Models/User").findOne({ role: "admin" }).select("_id");
-    if (admin) {
-      await Testimonial.insertMany(starterTestimonials.map((testimonial) => ({ ...testimonial, createdBy: admin._id })));
-      testimonials = await Testimonial.find({ isActive: true }).sort({ createdAt: 1 });
-    }
-  }
-
+  const testimonials = await Testimonial.find({ isActive: true }).sort({ createdAt: 1 });
   res.status(200).json(new ApiResponse(200, testimonials, "Testimonials fetched successfully"));
 });
 

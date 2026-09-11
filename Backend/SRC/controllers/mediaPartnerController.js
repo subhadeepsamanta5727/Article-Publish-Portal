@@ -35,33 +35,8 @@ const uploadLogo = (file) => new Promise((resolve, reject) => {
   stream.end(file.buffer);
 });
 
-const starterPartners = [
-  { name: "Forbes", logoUrl: "https://logo.clearbit.com/forbes.com", link: "https://www.forbes.com" },
-  { name: "Entrepreneur", logoUrl: "https://logo.clearbit.com/entrepreneur.com", link: "https://www.entrepreneur.com" },
-  { name: "TechCrunch", logoUrl: "https://logo.clearbit.com/techcrunch.com", link: "https://techcrunch.com" },
-  { name: "The Guardian", logoUrl: "https://logo.clearbit.com/theguardian.com", link: "https://www.theguardian.com" },
-  { name: "Fast Company", logoUrl: "https://logo.clearbit.com/fastcompany.com", link: "https://www.fastcompany.com" },
-  { name: "Inc.", logoUrl: "https://logo.clearbit.com/inc.com", link: "https://www.inc.com" },
-  { name: "BBC", logoUrl: "https://logo.clearbit.com/bbc.com", link: "https://www.bbc.com" },
-  { name: "CNN", logoUrl: "https://logo.clearbit.com/cnn.com", link: "https://www.cnn.com" },
-  { name: "Reuters", logoUrl: "https://logo.clearbit.com/reuters.com", link: "https://www.reuters.com" },
-  { name: "Bloomberg", logoUrl: "https://logo.clearbit.com/bloomberg.com", link: "https://www.bloomberg.com" },
-  { name: "The New York Times", logoUrl: "https://logo.clearbit.com/nytimes.com", link: "https://www.nytimes.com" },
-  { name: "The Hindu", logoUrl: "https://logo.clearbit.com/thehindu.com", link: "https://www.thehindu.com" },
-];
-
 const getActiveMediaPartners = asyncHandler(async (req, res) => {
-  let partners = await MediaPartner.find({ isActive: true }).sort({ createdAt: 1 });
-  const admin = await require("../Models/User").findOne({ role: "admin" }).select("_id");
-  if (admin) {
-    const existing = await MediaPartner.find({ name: { $in: starterPartners.map((partner) => partner.name) } }).select("name");
-    const existingNames = new Set(existing.map((partner) => partner.name));
-    const missing = starterPartners.filter((partner) => !existingNames.has(partner.name));
-    if (missing.length) {
-      await MediaPartner.insertMany(missing.map((partner) => ({ ...partner, createdBy: admin._id })));
-      partners = await MediaPartner.find({ isActive: true }).sort({ createdAt: 1 });
-    }
-  }
+  const partners = await MediaPartner.find({ isActive: true }).sort({ createdAt: 1 });
   res.status(200).json(new ApiResponse(200, partners, "Media partners fetched successfully"));
 });
 

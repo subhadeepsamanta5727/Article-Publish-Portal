@@ -35,7 +35,12 @@ app.use(helmet({
       styleSrc: ["'self'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.CLIENT_URL || "http://localhost:5173"],
+      connectSrc: [
+        "'self'",
+        process.env.CLIENT_URL || "http://localhost:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+      ],
       upgradeInsecureRequests: [],
     },
   },
@@ -48,7 +53,11 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      process.env.CLIENT_URL,
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ].filter(Boolean),
     credentials: true,
   })
 );
@@ -121,9 +130,9 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`http://localhost:${PORT}`);
+      console.log(`http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
     console.error("Server startup failed:", error.message);
