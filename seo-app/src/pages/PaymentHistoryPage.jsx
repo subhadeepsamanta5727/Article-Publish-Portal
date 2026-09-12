@@ -27,7 +27,7 @@
  * 4. Maps payment data to table rows
  * 5. User can download PDF or view details modal
  */
-import { Download, Eye, Receipt, X } from "lucide-react";
+import { Download, Eye, Receipt, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { errorMessage } from "../lib/api";
@@ -39,6 +39,7 @@ export default function PaymentHistoryPage() {
   const { user } = useAuth();
   const [payments, setPayments] = useState([]);           // List of payment records
   const [paymentId, setPaymentId] = useState("");         // Search filter input
+  const [filter, setFilter] = useState("all");
   const [view, setView] = useState(null);                 // Selected payment for detail modal
   const [loading, setLoading] = useState(true);           // Data fetching state
   const isAdmin = user?.role === "admin";                 // Role detection
@@ -86,6 +87,23 @@ export default function PaymentHistoryPage() {
     ) ||
     0;
 
+  const visiblePayments = payments
+    .filter((payment) => {
+      if (filter === "paid") return payment.status === "paid";
+      if (filter === "pending") return ["created", "pending"].includes(payment.status);
+      if (filter === "failed") return ["failed", "Failed"].includes(payment.status);
+      return true;
+    })
+    .filter((payment) => !paymentId || payment._id.toLowerCase().includes(paymentId.toLowerCase()));
+
+  const statusStyle = (status) => ({
+    paid: "bg-emerald-500",
+    created: "bg-amber-500",
+    pending: "bg-amber-500",
+    failed: "bg-rose-500",
+    Failed: "bg-rose-500",
+  }[status] || "bg-slate-500");
+
   /**
    * Download payment PDF to user's device
    * 
@@ -113,103 +131,54 @@ export default function PaymentHistoryPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <p className="text-sm font-semibold text-blue-600">ACCOUNT</p>
-      <h1 className="mt-1 text-3xl font-bold">
-        {isAdmin ? "All Payments" : "Payment history"}
-      </h1>
-      <p className="mt-2 text-slate-500">
-        {isAdmin
-          ? "View all user payments and package details."
-          : "View article quantities and package details."}
-      </p>
-      {/* Search/Filter Section */}
-      <div className="card mt-8 flex flex-wrap items-end gap-3 p-4">
-        <label className="text-xs font-semibold text-slate-500">
-          Payment ID
-          <input
-            className="field mt-1"
-            placeholder="Search payment ID"
-            value={paymentId}
-            onChange={(e) => setPaymentId(e.target.value)}
-          />
-        </label>
-        <button className="btn-primary" onClick={load}>
-          Filter
-        </button>
+    <div className="mx-auto max-w-[1440px]">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-2">
+        <div>
+          <p className="text-sm font-semibold text-blue-600">ACCOUNT</p>
+          <h1 className="mt-1 text-3xl font-bold">{isAdmin ? "All Payments" : "Payment history"}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
+            <Search size={15} />
+            <input className="w-36 bg-transparent outline-none placeholder:text-slate-400" placeholder="Payment ID" value={paymentId} onChange={(e) => setPaymentId(e.target.value)} />
+          </label>
+          <button className="btn-primary px-3 py-2" onClick={load}>Filter</button>
+        </div>
       </div>
-
-      {/* Payment Records List */}
-      {loading ? (
-        <p className="p-10 text-center text-sm text-slate-500">
-          Loading payments...
-        </p>
-      ) : !payments.filter((p) => p.status === "paid").length ? (
-          <p className="p-10 text-center text-sm text-slate-500">
-            No successful payments found.
-          </p>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {payments
-              .filter((p) => p.status === "paid")
-              .map((payment) => (
-              <div
-                className="flex flex-wrap items-center justify-between gap-4 p-5"
-                key={payment._id}
-              >
-                <div>
-                  <div className="flex items-center gap-3">
-                    <Receipt className="text-blue-600" />
-                    <div>
-                      <p className="font-semibold">Payment ID: {payment._id}</p>
-                      <p className="text-sm text-slate-500">
-                        {new Date(
-                          payment.paidAt || payment.createdAt,
-                        ).toLocaleString()}{" "}
-                        · Quantity: {quantity(payment)}
-                      </p>
-                      <p className="text-sm font-semibold text-blue-600">
-                        Amount: ₹{(payment.amount / 100).toFixed(2)}
-                      </p>
-                      {isAdmin && payment.userId && (
-                        <p className="text-sm text-slate-500">
-                          User: {payment.userId.name} ({payment.userId.email})
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(payment.packageSummary || []).map((item) => (
-                      <span
-                        className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                        key={`${payment._id}-${item.packageName}`}
-                      >
-                        {item.packageName} ·{" "}
-                        {item.packageId?.category || "Category unavailable"}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className="btn-secondary px-3 py-2"
-                    onClick={() => setView(payment)}
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <button
-                    className="btn-secondary px-3 py-2"
-                    onClick={() => download(payment)}
-                  >
-                    <Download size={16} />
-                    Download PDF
-                  </button>
-                </div>
-              </div>
-            ))}
+      <section className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 px-4 pt-1">
+          {[['all', 'All payments']].map(([value, label]) => (
+            <button key={value} onClick={() => setFilter(value)} className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${filter === value ? "text-blue-600 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-blue-600" : "text-slate-500 hover:text-slate-800"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {loading ? (
+          <p className="p-10 text-center text-sm text-slate-500">Loading payments...</p>
+        ) : !visiblePayments.length ? (
+        <p className="p-10 text-center text-sm text-slate-500">No payments found for this view.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[900px] grid-cols-[1.25fr_1fr_1.5fr_0.8fr_0.9fr_0.9fr_90px] items-center gap-3 border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <span>Payment ID</span><span>Created</span><span>{isAdmin ? "Customer" : "Articles"}</span><span>Quantity</span><span>Total</span><span>Status</span><span>Actions</span>
           </div>
-        )}
+          {visiblePayments.map((payment) => (
+            <div className="grid min-w-[900px] grid-cols-[1.25fr_1fr_1.5fr_0.8fr_0.9fr_0.9fr_90px] items-center gap-3 whitespace-nowrap border-b border-slate-200 px-4 py-3 last:border-0 hover:bg-slate-50" key={payment._id}>
+              <button className="truncate text-left text-sm font-semibold text-blue-600 hover:text-blue-800" onClick={() => setView(payment)}>{payment._id}</button>
+              <span className="text-sm text-slate-600">{new Date(payment.paidAt || payment.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-700"><Receipt className="shrink-0 text-slate-400" size={17} /><span className="truncate">{isAdmin && payment.userId ? payment.userId.name : `${quantity(payment)} article${quantity(payment) === 1 ? "" : "s"}`}</span></span>
+              <span className="text-sm text-slate-600">{quantity(payment)}</span>
+              <span className="text-sm font-semibold text-slate-700">₹{(payment.amount / 100).toFixed(2)}</span>
+              <span className={`inline-flex w-fit items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold capitalize text-white ${statusStyle(payment.status)}`}><span className="h-1.5 w-1.5 rounded-full bg-white/80" />{payment.status}</span>
+              <div className="flex items-center gap-1">
+                <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={() => setView(payment)} aria-label={`View payment ${payment._id}`}><Eye size={16} /></button>
+                <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={() => download(payment)} aria-label={`Download payment ${payment._id}`}><Download size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      </section>
       
       {view && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">

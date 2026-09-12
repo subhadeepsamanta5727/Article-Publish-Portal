@@ -28,7 +28,7 @@
  * - Provides PDF download button
  */
 import { Copy, Download, Eye, Mail, Plus, Share2, X } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import StatusBadge from "../components/ui/StatusBadge";
 import { errorMessage } from "../lib/api";
@@ -69,14 +69,14 @@ export default function AdminPage() {
    * - fromDate/toDate: Date range (using same date for both for "today" filter)
    * - limit: 50 articles per fetch
    */
-  const load = async () => {
+  const load = async (overrides = {}) => {
     setLoading(true);
     try {
       const r = await getAdminArticles({
         articleId: filter || undefined,
         limit: 50,
         authorName: authorName || undefined,
-        status: statusFilter || undefined,
+        status: overrides.status ?? (statusFilter || undefined),
         fromDate: fromDate || undefined,
         toDate: fromDate || undefined,
       });
@@ -336,6 +336,20 @@ export default function AdminPage() {
         </p>
       </div>
       <div className="card mt-8 overflow-hidden">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 px-4 pt-1">
+          {[["", "All articles"], ["pending", "Active"], ["delivered", "Delivered"], ["Failed", "Unfulfilled"]].map(([value, label]) => (
+            <button
+              key={label}
+              className={`relative whitespace-nowrap px-4 py-3 text-sm font-semibold transition ${statusFilter === value ? "text-blue-600 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-blue-600" : "text-slate-500 hover:text-slate-800"}`}
+              onClick={() => {
+                setStatusFilter(value);
+                load({ status: value });
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 gap-4 border-b border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
           <label className="label">
             Article ID
@@ -397,162 +411,27 @@ export default function AdminPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-225 text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="p-4">Article</th>
-                  <th className="p-4">Author</th>
-                  <th className="p-4">Cost_Price</th>
-                  <th className="p-4">Submitted</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Decision</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {articles.map((a) => (
-                  <Fragment key={a.articleId}>
-                    <tr>
-                      <td className="p-4">
-                        <p className="font-semibold">
-                          {a.articleTitle || "Untitled article"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {a.articleId}
-                        </p>
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {a.author?.name || a.userId?.name}
-                        <br />
-                        <span className="text-xs text-slate-400">
-                          {a.author?.email || a.userId?.email}
-                        </span>
-                      </td>
-                      <td className="p-4 text-slate-500">
-                        ₹
-                        {(
-                          Number(a.packageCostPrice || 0) +
-                          Number(a.publisherCostPrice || 0)
-                        ).toFixed(2)}
-                      </td>
-                      <td className="p-4 text-slate-500">
-                        {a.submittedAt
-                          ? new Date(a.submittedAt).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="p-4">
-                        <StatusBadge status={a.status} />
-                      </td>
-                      <td className="p-4">
-                        {["writing", "submitted", "pending"].includes(
-                          a.status,
-                        ) ? (
-                          <select
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                            value=""
-                            onChange={(e) => {
-                              if (!e.target.value) return;
-                              if (e.target.value === "delivered")
-                                openSharePopup(a);
-                              else update(a.articleId, e.target.value);
-                            }}
-                          >
-                            <option value="" disabled>
-                              Update status
-                            </option>
-                            <option
-                              value="delivered"
-                              disabled={a.status !== "pending"}
-                            >
-                              Delivered
-                            </option>
-                            <option value="Failed">Failed</option>
-                          </select>
-                        ) : (
-                          ""
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            className="btn-secondary px-2 py-1.5 text-xs"
-                            disabled={previewLoading}
-                            onClick={() => viewArticle(a.articleId)}
-                            aria-label={`View ${a.articleId}`}
-                            title="View article"
-                          >
-                            <Eye size={14} />
-                            <span className="hidden 2xl:inline">Open</span>
-                          </button>
-                          <button
-                            className="btn-secondary px-2 py-1.5 text-xs"
-                            onClick={() => downloadArticle(a)}
-                            aria-label={`Download article PDF for ${a.articleId}`}
-                            title="Download article PDF"
-                          >
-                            <Download size={14} />
-                          </button>
-                          <button
-                            className="btn-secondary px-2 py-1.5 text-xs"
-                            onClick={() => shareByChannel(a)}
-                            aria-label={`Share ${a.articleId}`}
-                            title="Share article"
-                          >
-                            <Share2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {a.status !== "pending" &&
-                      (a.deliveryNote || a.deliveryLink) && (
-                      <tr>
-                        <td colSpan={7} className="px-4 pb-4">
-                          <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-950">
-                            {a.status !== "pending" && (
-                              <div>
-                                <span className="font-semibold">
-                                  Delivery details:{" "}
-                                </span>
-                                {a.deliveryNote && (
-                                  <span>{a.deliveryNote}</span>
-                                )}
-                                {[
-                                  ...(a.deliveryLinks || []),
-                                  ...(a.deliveryLink &&
-                                  !a.deliveryLinks?.includes(a.deliveryLink)
-                                    ? [a.deliveryLink]
-                                    : []),
-                                ].map((link) => (
-                                  <a
-                                    key={link}
-                                    className="ml-2 break-all font-semibold text-blue-700 underline"
-                                    href={link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    {link}
-                                  </a>
-                                ))}
-                                {a.deliveryFileUrl && (
-                                  <a
-                                    className="ml-2 font-semibold text-blue-700 underline"
-                                    href={a.deliveryFileUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    {a.deliveryFileName || "Delivery file"}
-                                  </a>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
+            <div className="grid min-w-[1120px] grid-cols-[1.1fr_1.2fr_1.5fr_0.9fr_0.9fr_1.1fr_1.2fr] items-center gap-3 whitespace-nowrap border-b border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>Article ID</span><span>Submitted</span><span>Article</span><span>Author</span><span>Cost</span><span>Status</span><span>Actions</span>
+            </div>
+            {articles.map((a) => (
+              <div className="grid h-14 min-w-[1120px] grid-cols-[1.1fr_1.2fr_1.5fr_0.9fr_0.9fr_1.1fr_1.2fr] items-center gap-3 overflow-hidden whitespace-nowrap border-b border-slate-200 px-4 last:border-0 hover:bg-slate-50" key={a.articleId}>
+                <button className="min-w-0 truncate text-left text-sm font-semibold leading-none text-blue-600 hover:text-blue-800" onClick={() => viewArticle(a.articleId)}>{a.articleId}</button>
+                <span className="min-w-0 truncate text-sm leading-none text-slate-600">{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "--"}</span>
+                <span className="min-w-0 truncate text-sm font-semibold leading-none text-slate-700" title={a.articleTitle || "Untitled article"}>{a.articleTitle || "Untitled article"}</span>
+                <span className="min-w-0 truncate text-sm leading-none text-slate-600" title={a.author?.email || a.userId?.email}>{a.author?.name || a.userId?.name || "--"}</span>
+                <span className="min-w-0 truncate text-sm font-medium leading-none text-slate-700">₹{(Number(a.packageCostPrice || 0) + Number(a.publisherCostPrice || 0)).toFixed(2)}</span>
+                <span className="min-w-0"><StatusBadge status={a.status} /></span>
+                <div className="flex flex-nowrap items-center gap-1 overflow-visible">
+                  {["writing", "submitted", "pending"].includes(a.status) && <select className="max-w-[120px] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs" value="" onChange={(e) => { if (!e.target.value) return; if (e.target.value === "delivered") openSharePopup(a); else update(a.articleId, e.target.value); }} aria-label={`Update ${a.articleId} status`}>
+                    <option value="" disabled>Update</option><option value="delivered" disabled={a.status !== "pending"}>Delivered</option><option value="Failed">Failed</option>
+                  </select>}
+                  <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" disabled={previewLoading} onClick={() => viewArticle(a.articleId)} aria-label={`View ${a.articleId}`} title="View article"><Eye size={16} /></button>
+                  <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={() => downloadArticle(a)} aria-label={`Download ${a.articleId}`} title="Download article PDF"><Download size={16} /></button>
+                  <button className="rounded-md p-2 text-slate-500 hover:bg-slate-100" onClick={() => shareByChannel(a)} aria-label={`Share ${a.articleId}`} title="Share article"><Share2 size={16} /></button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
