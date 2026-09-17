@@ -223,7 +223,7 @@ export default function ArticleEditorPage() {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: "SEO",
+        name: "ReleaseMYPR",
         description: `Publication fee for ${articleId}`,
         order_id: order.orderId,
         handler: async (payment) => {

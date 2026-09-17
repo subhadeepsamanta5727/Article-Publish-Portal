@@ -39,7 +39,7 @@ export default function CheckoutPage() {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: "SEO",
+        name: "ReleaseMYPR",
         description: `Payment for ${order.totalArticles} article${order.totalArticles === 1 ? "" : "s"}`,
         order_id: order.orderId,
         handler: async (payment) => {

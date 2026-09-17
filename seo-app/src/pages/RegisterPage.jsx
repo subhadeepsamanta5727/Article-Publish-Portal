@@ -36,7 +36,7 @@ export default function RegisterPage() {
   return (
     <AuthLayout
       title="Start publishing"
-      subtitle="Create your SEO author account."
+      subtitle="Create your ReleaseMYPR author account."
       lightOnly
     >
       <form onSubmit={submit} className="mt-8 space-y-4">

@@ -21,7 +21,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
   if (loading)
     return (
       <div className="grid min-h-screen place-items-center text-slate-500">
-        Loading SEO…
+        Loading ReleaseMYPR…
       </div>
     );
   if (!user) return <Navigate to="/login" replace />;

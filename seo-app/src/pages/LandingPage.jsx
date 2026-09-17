@@ -14,6 +14,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import logo from "../assets/rmp-logo.png";
+import heroImage from "../assets/HeroImage.png";
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer";
 import { getActiveMediaPartners, getActivePackages } from "../services/packageService";
@@ -118,12 +120,9 @@ export default function LandingPage() {
           <Link
             to="/"
             className="flex shrink-0 items-center gap-2.5 text-base font-extrabold tracking-tight text-[#1e293b] sm:text-lg"
-            aria-label="Article Publish Portal home"
+            aria-label="ReleaseMYPR home"
           >
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-600 text-white shadow-lg shadow-teal-200">
-              <BookOpen size={20} />
-            </span>
-            <span className="hidden sm:inline">Article Publish Portal</span>
+            <img src={logo} alt="ReleaseMYPR" className="h-16 w-auto max-w-[280px] object-contain object-left sm:h-20 sm:max-w-[360px]" />
           </Link>
           <nav
             className="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex"
@@ -198,53 +197,9 @@ export default function LandingPage() {
               10,000+ writers publishing <span className="text-teal-500">·</span> Free to start
             </div>
           </div>
-            <div className="relative -mt-2 aspect-square w-full max-w-[26rem] justify-self-center text-left lg:-mt-4" aria-label="Article review workspace preview">
-              <div className="absolute -inset-3 rounded-[2rem] bg-teal-100/60 blur-xl" aria-hidden="true" />
-              <div className="relative h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]">
-                <div className="flex h-10 items-center gap-1.5 border-b border-slate-200 bg-[#1e293b] px-4">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                  <div className="ml-3 h-5 max-w-xs flex-1 rounded-full bg-slate-700/80 sm:max-w-sm" />
-                </div>
-                <div className="relative min-h-72 bg-[#f8fbfa] p-4 pb-40 sm:min-h-80 sm:p-8 sm:pb-8">
-                  <div className="mr-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:mr-52 sm:p-6">
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">
-                      <FileText size={14} /> Article workspace
-                    </div>
-                    <p className="mt-4 text-xs font-bold text-slate-500">DRAFT / SYSTEMS &amp; ENGINEERING</p>
-                    <h3 className="mt-2 text-lg font-extrabold tracking-tight text-slate-800 sm:text-2xl">Designing resilient content workflows</h3>
-                    <div className="mt-6 grid grid-cols-[1fr_1.2fr_1fr] items-center gap-3 sm:gap-7">
-                      <div className="rounded border border-slate-300 bg-slate-50 p-2 text-center text-[9px] font-bold text-slate-500 sm:p-3 sm:text-[10px]">Writer brief</div>
-                      <div className="relative h-px bg-teal-300"><span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500" /></div>
-                      <div className="rounded border border-teal-200 bg-teal-50 p-2 text-center text-[9px] font-bold text-teal-700 sm:p-3 sm:text-[10px]">SEO review</div>
-                    </div>
-                    <div className="mt-6 space-y-2">
-                      <div className="h-2 w-11/12 rounded-full bg-slate-200" />
-                      <div className="h-2 w-9/12 rounded-full bg-slate-200" />
-                      <div className="h-2 w-10/12 rounded-full bg-slate-200" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-4 right-4 w-[calc(100%-2rem)] rounded-lg border border-slate-200 bg-white p-4 shadow-[0_14px_30px_rgba(15,23,42,0.14)] sm:bottom-8 sm:right-8 sm:w-64 sm:p-5">
-                    <div className="text-center">
-                      <p className="text-[10px] font-semibold text-slate-400">Editorial feedback</p>
-                      <p className="mt-1 text-sm font-extrabold text-slate-800">Your article is taking shape</p>
-                      <button type="button" className="mt-3 inline-flex items-center gap-1.5 rounded bg-teal-700 px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-teal-800">
-                        <Sparkles size={12} /> Get feedback
-                      </button>
-                    </div>
-                    <div className="mt-4 rounded bg-slate-50 p-3">
-                      <div className="flex h-2 overflow-hidden rounded-full bg-slate-200">
-                        <span className="w-1/3 bg-amber-400" /><span className="w-1/3 bg-teal-500" /><span className="w-1/3 bg-emerald-700" />
-                      </div>
-                      <p className="mt-3 text-[9px] font-semibold text-slate-500">What went well</p>
-                      <div className="mt-2 space-y-1"><div className="h-1.5 rounded-full bg-slate-200" /><div className="h-1.5 w-11/12 rounded-full bg-slate-200" /></div>
-                      <p className="mt-3 text-[9px] font-semibold text-slate-500">Next suggestion</p>
-                      <div className="mt-2 h-1.5 w-10/12 rounded-full bg-slate-200" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="relative w-full max-w-[30rem] justify-self-center lg:-mt-4" aria-label="Article review workspace preview">
+              <div className="absolute -inset-4 rounded-[2rem] bg-teal-100/60 blur-xl" aria-hidden="true" />
+              <img src={heroImage} alt="ReleaseMYPR article workspace with editorial feedback" className="relative block h-auto w-full rounded-xl border border-slate-200 bg-white object-contain shadow-[0_24px_70px_rgba(15,23,42,0.16)]" />
             </div>
           </div>
       </section>
@@ -574,9 +529,8 @@ export default function LandingPage() {
       <section className="bg-teal-700 text-white" aria-label="Footer links">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div>
-            <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold" aria-label="SEO home">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-white text-teal-700"><BookOpen size={18} /></span>
-              SEO
+            <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold" aria-label="ReleaseMYPR home">
+              <img src={logo} alt="ReleaseMYPR" className="h-10 w-auto max-w-[190px] rounded-lg bg-white px-2 py-1 object-contain object-left" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-blue-100">
               A clearer way to shape, submit, and track your next published idea.

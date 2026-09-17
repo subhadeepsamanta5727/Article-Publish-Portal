@@ -68,7 +68,7 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-600">
-        New to SEO?{" "}
+        New to ReleaseMYPR?{" "}
         <Link className="font-semibold text-indigo-600" to="/register">
           Create an account
         </Link>
