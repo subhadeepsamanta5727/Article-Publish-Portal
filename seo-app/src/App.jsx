@@ -15,6 +15,11 @@ import AdminMediaPartnersPage from "./pages/AdminMediaPartnersPage";
 import { DashboardPage } from "./features/dashboard";
 import { AppShell, ThemeProvider } from "./shared";
 import LandingPage from "./pages/LandingPage";
+import LegalPage from "./pages/LegalPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
+import PaymentPolicyPage from "./pages/PaymentPolicyPage";
+import ContactPage from "./pages/ContactPage";
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -66,6 +71,11 @@ function App() {
                 </GuestRoute>
               }
             />
+            <Route path="/legal" element={<LegalPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route
               element={
                 <ProtectedRoute>

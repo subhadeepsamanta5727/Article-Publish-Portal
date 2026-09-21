@@ -1,14 +1,12 @@
 import {
   ArrowRight,
   BarChart3,
-  BookOpen,
   CheckCircle2,
   ChevronDown,
   FileText,
   Mail,
   MapPin,
   Phone,
-  Globe2,
   PenLine,
   Search,
   Sparkles,
@@ -18,7 +16,10 @@ import logo from "../assets/rmp-logo.png";
 import heroImage from "../assets/HeroImage.png";
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer";
-import { getActiveMediaPartners, getActivePackages } from "../services/packageService";
+import {
+  getActiveMediaPartners,
+  getActivePackages,
+} from "../services/packageService";
 import { getActiveTestimonials } from "../services/testimonialService";
 
 const steps = [
@@ -59,12 +60,16 @@ export default function LandingPage() {
 
   useEffect(() => {
     let mounted = true;
-    getActiveMediaPartners().then((response) => {
-      if (mounted) setMediaPartners((response.data || []).slice(0, 12));
-    }).catch(() => {
-      if (mounted) setMediaPartners([]);
-    });
-    return () => { mounted = false; };
+    getActiveMediaPartners()
+      .then((response) => {
+        if (mounted) setMediaPartners((response.data || []).slice(0, 12));
+      })
+      .catch(() => {
+        if (mounted) setMediaPartners([]);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -103,7 +108,12 @@ export default function LandingPage() {
     let mounted = true;
     getActivePackages()
       .then((response) => {
-        if (mounted) setPackages((response.data || []).slice(0, 5));
+        if (mounted) {
+          const lowestPricePackages = [...(response.data || [])]
+            .sort((first, second) => Number(first.price || 0) - Number(second.price || 0))
+            .slice(0, 4);
+          setPackages(lowestPricePackages);
+        }
       })
       .catch(() => {
         if (mounted) setPackages([]);
@@ -122,7 +132,11 @@ export default function LandingPage() {
             className="flex shrink-0 items-center gap-2.5 text-base font-extrabold tracking-tight text-[#1e293b] sm:text-lg"
             aria-label="ReleaseMYPR home"
           >
-            <img src={logo} alt="ReleaseMYPR" className="h-16 w-auto max-w-[280px] object-contain object-left sm:h-20 sm:max-w-[360px]" />
+            <img
+              src={logo}
+              alt="ReleaseMYPR"
+              className="h-16 w-auto max-w-[280px] object-contain object-left sm:h-20 sm:max-w-[360px]"
+            />
           </Link>
           <nav
             className="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex"
@@ -141,11 +155,14 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Link
               to="/login"
-              className="rounded-xl px-2 py-2 text-sm font-bold text-slate-700 transition hover:bg-teal-50 hover:text-teal-700 sm:px-3"
+              className="rounded-xl bg-[#1e293b] px-3 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-[#334155] sm:px-4"
             >
               Sign in
             </Link>
-            <Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-[#1e293b] px-3 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-[#334155] sm:px-4">
+            <Link
+              to="/register"
+              className="hidden items-center gap-2 rounded-xl bg-[#1e293b] px-3 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/10 transition hover:-translate-y-0.5 hover:bg-[#334155] sm:inline-flex sm:px-4"
+            >
               Get started <ArrowRight size={16} />
             </Link>
           </div>
@@ -160,13 +177,20 @@ export default function LandingPage() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-7 px-5 pb-8 pt-5 sm:px-8 sm:pb-11 sm:pt-7 lg:grid-cols-[0.88fr_1.12fr] lg:gap-9 lg:pb-14 lg:pt-8">
           <div className="animate-[fade-in_700ms_ease-out_both] text-center lg:text-left">
             <p className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-teal-700 shadow-sm">
-              <Sparkles size={14} /> New: Instant Markdown Preview &amp; AI Polish
+              <Sparkles size={14} /> New: Instant Markdown Preview &amp; AI
+              Polish
             </p>
             <h1 className="mt-4 max-w-4xl text-[2.1rem] font-extrabold leading-[1.02] tracking-tight text-[#1e293b] sm:text-[2.75rem] lg:text-5xl">
-              Seamless <span className="inline-block rounded-2xl bg-teal-100 px-3 py-1 text-teal-800 shadow-sm">Publishing</span> for every story you write.
+              Seamless{" "}
+              <span className="inline-block rounded-2xl bg-teal-100 px-3 py-1 text-teal-800 shadow-sm">
+                Publishing
+              </span>{" "}
+              for every story you write.
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-[#334155] sm:text-base sm:leading-7 lg:mx-0">
-              Write, review, and publish technical articles and blogs step-by-step with automated SEO analysis and instant collaborator feedback.
+              Write, review, and publish technical articles and blogs
+              step-by-step with automated SEO analysis and instant collaborator
+              feedback.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-1.5 lg:justify-start">
               {[
@@ -175,16 +199,30 @@ export default function LandingPage() {
                 [CheckCircle2, "Draft Reviews"],
                 [ArrowRight, "Instant Publishing"],
               ].map(([Icon, label]) => (
-                <a key={label} href="#how-it-works" className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800">
-                  <Icon size={15} className="text-teal-600 transition group-hover:scale-110" /> {label}
+                <a
+                  key={label}
+                  href="#how-it-works"
+                  className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"
+                >
+                  <Icon
+                    size={15}
+                    className="text-teal-600 transition group-hover:scale-110"
+                  />{" "}
+                  {label}
                 </a>
               ))}
             </div>
             <div className="mt-5 flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:gap-4 lg:justify-start">
-              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e293b] px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#334155] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e293b] px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#334155] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              >
                 Start Writing Free <ArrowRight size={17} />
               </Link>
-              <a href="#testimonials" className="inline-flex items-center gap-2 px-2 py-3 text-sm font-bold text-teal-700 transition hover:text-teal-900">
+              <a
+                href="#testimonials"
+                className="inline-flex items-center gap-2 px-2 py-3 text-sm font-bold text-teal-700 transition hover:text-teal-900"
+              >
                 Explore Published Articles <ArrowRight size={16} />
               </a>
             </div>
@@ -194,20 +232,28 @@ export default function LandingPage() {
                 <span className="h-6 w-6 rounded-full border-2 border-white bg-cyan-600" />
                 <span className="h-6 w-6 rounded-full border-2 border-white bg-slate-700" />
               </span>
-              10,000+ writers publishing <span className="text-teal-500">·</span> Free to start
+              10,000+ writers publishing{" "}
+              <span className="text-teal-500">·</span> Free to start
             </div>
           </div>
-            <div className="relative w-full max-w-[30rem] justify-self-center lg:-mt-4" aria-label="Article review workspace preview">
-              <div className="absolute -inset-4 rounded-[2rem] bg-teal-100/60 blur-xl" aria-hidden="true" />
-              <img src={heroImage} alt="ReleaseMYPR article workspace with editorial feedback" className="relative block h-auto w-full rounded-xl border border-slate-200 bg-white object-contain shadow-[0_24px_70px_rgba(15,23,42,0.16)]" />
-            </div>
+          <div
+            className="relative w-full max-w-[30rem] justify-self-center lg:-mt-4"
+            aria-label="Article review workspace preview"
+          >
+            <div
+              className="absolute -inset-4 rounded-[2rem] bg-teal-100/60 blur-xl"
+              aria-hidden="true"
+            />
+            <img
+              src={heroImage}
+              alt="ReleaseMYPR article workspace with editorial feedback"
+              className="relative block h-auto w-full rounded-xl border border-slate-200 bg-white object-contain shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
+            />
           </div>
+        </div>
       </section>
 
-      <section
-        id="how-it-works"
-        className="border-y border-slate-200 bg-white"
-      >
+      <section id="how-it-works" className="border-y border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <p className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-teal-700">
@@ -217,11 +263,15 @@ export default function LandingPage() {
               Master your publishing workflow with practical steps.
             </h2>
             <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-600">
-              Pick a destination, shape your draft with intention, and get useful feedback before your story goes live.
+              Pick a destination, shape your draft with intention, and get
+              useful feedback before your story goes live.
             </p>
           </div>
           <div className="relative mt-12 grid gap-4 md:grid-cols-3 md:gap-6">
-            <div className="absolute left-[16%] right-[16%] top-12 hidden h-px bg-teal-200 md:block" aria-hidden="true" />
+            <div
+              className="absolute left-[16%] right-[16%] top-12 hidden h-px bg-teal-200 md:block"
+              aria-hidden="true"
+            />
             {steps.map(({ icon: Icon, number, title, text }) => (
               <article
                 key={number}
@@ -295,7 +345,9 @@ export default function LandingPage() {
                           <p className="font-bold">{testimonial.name}</p>
                           <p className="mt-1 text-sm text-slate-400">
                             {testimonial.role}
-                            {testimonial.company ? ` at ${testimonial.company}` : ""}
+                            {testimonial.company
+                              ? ` at ${testimonial.company}`
+                              : ""}
                           </p>
                         </div>
                       </div>
@@ -325,121 +377,155 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section
-        id="pricing"
-        className="border-y border-blue-100 bg-white"
-      >
+      <section id="pricing" className="border-y border-blue-100 bg-white">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-24">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-600">
-              Pricing
-            </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
-              Choose your next publishing move.
-            </h2>
-            <p className="mt-3 text-slate-600">
-              Straightforward options, clear prices, no guesswork.
-            </p>
-          </div>
-          <Link
-            to="/register"
-            className="text-sm font-bold text-blue-700 underline underline-offset-4"
-          >
-            View all packages
-          </Link>
-          </div>
-          {packages.length ? (
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {packages.map((pkg) => (
-              <article
-                key={pkg.packageId || pkg._id}
-                className="rounded-2xl border border-blue-100 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg"
-              >
-                <div className="flex h-full flex-col">
-                  <header className="border-b border-blue-100 pb-3 text-center">
-                    <span className="mx-auto grid h-8 w-8 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                      <FileText size={15} />
-                    </span>
-                    <h3 className="mt-2 wrap-break-word text-sm font-bold text-slate-900">
-                      {pkg.packageName}
-                    </h3>
-                  </header>
-                  <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      {pkg.category || "Publishing"}
-                    </p>
-                    <span className="rounded-full bg-blue-50 px-1.5 py-1 text-[9px] font-bold text-blue-700">
-                      Available
-                    </span>
-                  </div>
-                  <footer className="border-t border-blue-100 pt-3 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      Starting from
-                    </p>
-                    <p className="mt-1 text-base font-bold tracking-tight text-blue-700">
-                      {new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: pkg.currency || "INR",
-                      }).format(Number(pkg.price || 0))}
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 transition hover:text-blue-700"
-                      aria-expanded={expandedPackage === (pkg.packageId || pkg._id)}
-                      onClick={() =>
-                        setExpandedPackage((current) =>
-                          current === (pkg.packageId || pkg._id)
-                            ? null
-                            : pkg.packageId || pkg._id,
-                        )
-                      }
-                    >
-                      What&apos;s included
-                      <ChevronDown
-                        size={13}
-                        className={expandedPackage === (pkg.packageId || pkg._id) ? "rotate-180 transition-transform" : "transition-transform"}
-                      />
-                    </button>
-                    {expandedPackage === (pkg.packageId || pkg._id) && (
-                      <div className="mt-3 border-t border-blue-100 pt-3 text-left">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                          Included publishers
-                        </p>
-                        <ul className="mt-2 space-y-1.5 text-[11px] text-slate-600">
-                          {(pkg.mediaCoverage || []).length ? (
-                            pkg.mediaCoverage.map((publisher) => (
-                                <li key={publisher.publisherName} className="flex min-w-0 gap-1.5">
-                                <CheckCircle2 className="mt-0.5 shrink-0 text-blue-600" size={12} />
-                                <span className="wrap-break-word">{publisher.publisherName}</span>
-                              </li>
-                            ))
-                          ) : (
-                            <li className="flex gap-1.5">
-                              <CheckCircle2 className="mt-0.5 shrink-0 text-blue-600" size={12} />
-                              <span>Editorial review and submission support</span>
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </footer>
-                </div>
-              </article>
-            ))}
-          </div>
-          ) : (
-          <div className="mt-10 rounded-2xl border border-dashed border-blue-200 bg-blue-50 p-8 text-center">
-            <p className="font-semibold text-slate-800">
-              Packages are available after sign in.
-            </p>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-600">
+                Pricing
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
+                Choose your next publishing move.
+              </h2>
+              <p className="mt-3 text-slate-600">
+                Straightforward options, clear prices, no guesswork.
+              </p>
+            </div>
             <Link
-              to="/login"
-              className="mt-3 inline-flex font-bold text-blue-700 underline underline-offset-4"
+              to="/register"
+              className="text-sm font-bold text-blue-700 underline underline-offset-4"
             >
-              Sign in to view pricing
+              View all packages
             </Link>
           </div>
+          {packages.length ? (
+            <div className="mx-auto mt-10 flex max-w-5xl snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {packages.map((pkg, index) => (
+                <article
+                  key={pkg.packageId || pkg._id}
+                  className="min-w-[15rem] max-w-[15rem] shrink-0 snap-start overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_16px_35px_rgba(15,23,42,0.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_42px_rgba(15,23,42,0.16)]"
+                >
+                  <div className="flex min-h-[20rem] h-full flex-col">
+                    <header
+                      className={`relative overflow-hidden px-4 pb-8 pt-4 text-center text-white ${index === 0 ? "bg-teal-600" : index === 1 ? "bg-cyan-600" : "bg-blue-700"}`}
+                    >
+                      <span className="relative z-10 text-xs font-bold uppercase tracking-[0.12em] text-white/80">
+                        {pkg.category || "Publishing"}
+                      </span>
+                      <h3 className="relative z-10 mt-1 wrap-break-word text-lg font-extrabold">
+                        {pkg.packageName}
+                      </h3>
+                      <span
+                        className="absolute -bottom-7 left-[-10%] h-12 w-[120%] rounded-[50%] bg-white"
+                        aria-hidden="true"
+                      />
+                    </header>
+                    <div className="flex flex-1 flex-col px-4 pb-4 pt-1">
+                      <p className="text-center text-2xl font-extrabold tracking-tight text-slate-700">
+                        {new Intl.NumberFormat("en-IN", {
+                          style: "currency",
+                          currency: pkg.currency || "INR",
+                          maximumFractionDigits: 0,
+                        }).format(Number(pkg.price || 0))}
+                      </p>
+                      <ul className="mt-3 flex-1 space-y-1.5 text-[10px] leading-4 text-slate-600">
+                        {(pkg.mediaCoverage || []).slice(0, 5).map((publisher) => (
+                          <li key={publisher.publisherName} className="flex gap-2">
+                            <CheckCircle2 className="mt-0.5 shrink-0 text-teal-600" size={13} />
+                            <span className="wrap-break-word">{publisher.publisherName}</span>
+                          </li>
+                        ))}
+                        {!(pkg.mediaCoverage || []).length && (
+                          <li className="flex gap-2">
+                            <CheckCircle2 className="mt-0.5 shrink-0 text-teal-600" size={13} />
+                            <span>Editorial review and submission support</span>
+                          </li>
+                        )}
+                      </ul>
+                      <Link
+                        to="/register"
+                        className="mx-auto mt-3 inline-flex items-center justify-center rounded border border-teal-300 px-3 py-1 text-[9px] font-extrabold uppercase tracking-wide text-teal-700 transition hover:bg-teal-50"
+                      >
+                        Buy now
+                      </Link>
+                    </div>
+                    <footer className="border-t border-slate-100 px-4 py-2.5 text-center">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 transition hover:text-teal-700"
+                        aria-expanded={
+                          expandedPackage === (pkg.packageId || pkg._id)
+                        }
+                        onClick={() =>
+                          setExpandedPackage((current) =>
+                            current === (pkg.packageId || pkg._id)
+                              ? null
+                              : pkg.packageId || pkg._id,
+                          )
+                        }
+                      >
+                        What&apos;s included
+                        <ChevronDown
+                          size={13}
+                          className={
+                            expandedPackage === (pkg.packageId || pkg._id)
+                              ? "rotate-180 transition-transform"
+                              : "transition-transform"
+                          }
+                        />
+                      </button>
+                      {expandedPackage === (pkg.packageId || pkg._id) && (
+                        <div className="mt-3 border-t border-slate-100 pt-3 text-left">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            Included publishers
+                          </p>
+                          <ul className="mt-2 space-y-1.5 text-[11px] text-slate-600">
+                            {(pkg.mediaCoverage || []).length ? (
+                              pkg.mediaCoverage.map((publisher) => (
+                                <li
+                                  key={publisher.publisherName}
+                                  className="flex min-w-0 gap-1.5"
+                                >
+                                  <CheckCircle2
+                                    className="mt-0.5 shrink-0 text-teal-600"
+                                    size={12}
+                                  />
+                                  <span className="wrap-break-word">
+                                    {publisher.publisherName}
+                                  </span>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="flex gap-1.5">
+                                <CheckCircle2
+                                  className="mt-0.5 shrink-0 text-teal-600"
+                                  size={12}
+                                />
+                                <span>
+                                  Editorial review and submission support
+                                </span>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </footer>
+                  </div>
+                </article>
+                ))}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-2xl border border-dashed border-blue-200 bg-blue-50 p-8 text-center">
+              <p className="font-semibold text-slate-800">
+                Packages are available after sign in.
+              </p>
+              <Link
+                to="/login"
+                className="mt-3 inline-flex font-bold text-blue-700 underline underline-offset-4"
+              >
+                Sign in to view pricing
+              </Link>
+            </div>
           )}
         </div>
       </section>
@@ -455,17 +541,46 @@ export default function LandingPage() {
                 A wider audience for your next strong idea.
               </h2>
               <p className="mt-4 max-w-xl leading-7 text-slate-600">
-                Discover recognizable outlets and active publication opportunities
-                managed by your editorial team.
+                Discover recognizable outlets and active publication
+                opportunities managed by your editorial team.
               </p>
             </div>
-            <div className="relative left-1/2 mt-10 w-screen -translate-x-1/2 overflow-hidden border-y border-blue-100 bg-white px-5 py-5 shadow-sm sm:px-8" aria-label="Media opportunities">
-              <div className="partner-marquee flex w-max gap-3" onMouseEnter={(event) => event.currentTarget.classList.add("partner-marquee-paused")} onMouseLeave={(event) => event.currentTarget.classList.remove("partner-marquee-paused")}>
-                {[...mediaPartners, ...mediaPartners].map((partner, index) => <a key={`${partner._id}-${index}`} href={partner.link} target="_blank" rel="noreferrer" className="flex min-w-64 items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 transition duration-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm">
-                  {partner.logoUrl ? <img src={partner.logoUrl} alt={`${partner.name} logo`} className="h-10 w-10 rounded-lg bg-white object-contain p-1" /> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-600 text-sm font-bold text-white">{partner.name.slice(0, 2).toUpperCase()}</span>}
-                  <p className="min-w-0 truncate font-bold text-slate-800">{partner.name}</p>
-                  <Globe2 className="ml-auto shrink-0 text-blue-300" size={18} />
-                </a>)}
+            <div
+              className="relative left-1/2 mt-10 w-screen -translate-x-1/2 overflow-hidden border-y border-blue-100 bg-white px-5 py-5 shadow-sm sm:px-8"
+              aria-label="Media opportunities"
+            >
+              <div
+                className="partner-marquee flex w-max gap-3"
+                onMouseEnter={(event) =>
+                  event.currentTarget.classList.add("partner-marquee-paused")
+                }
+                onMouseLeave={(event) =>
+                  event.currentTarget.classList.remove("partner-marquee-paused")
+                }
+              >
+                {[...mediaPartners, ...mediaPartners].map((partner, index) => (
+                  <a
+                    key={`${partner._id}-${index}`}
+                    href={partner.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={partner.name}
+                    title={partner.name}
+                    className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 p-2 transition duration-200 hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm"
+                  >
+                    {partner.logoUrl ? (
+                      <img
+                        src={partner.logoUrl}
+                        alt={`${partner.name} logo`}
+                        className="h-16 w-16 rounded-lg bg-white object-contain p-1"
+                      />
+                    ) : (
+                      <span className="grid h-16 w-16 place-items-center rounded-lg bg-blue-600 text-base font-bold text-white">
+                        {partner.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -482,44 +597,66 @@ export default function LandingPage() {
               Clear answers before you choose a package.
             </h2>
             <p className="mt-5 max-w-xl leading-7 text-slate-600">
-              Here are the details buyers ask about most when comparing higher-tier options like LBC 9 and LBC 10.
+              Here are the details buyers ask about most when comparing
+              higher-tier options like LBC 9 and LBC 10.
             </p>
           </div>
           <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-5 sm:px-7">
             <details className="group py-5" open>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-slate-900 sm:text-base">
                 How long does publication usually take?
-                <ChevronDown size={18} className="shrink-0 text-blue-600 transition-transform group-open:rotate-180" />
+                <ChevronDown
+                  size={18}
+                  className="shrink-0 text-blue-600 transition-transform group-open:rotate-180"
+                />
               </summary>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Turnaround depends on the selected publisher and review queue. Your dashboard shows each milestone, and the editorial team shares the expected timeline after submission.
+                Turnaround depends on the selected publisher and review queue.
+                Your dashboard shows each milestone, and the editorial team
+                shares the expected timeline after submission.
               </p>
             </details>
             <details className="group py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-slate-900 sm:text-base">
                 Is indexation guaranteed?
-                <ChevronDown size={18} className="shrink-0 text-blue-600 transition-transform group-open:rotate-180" />
+                <ChevronDown
+                  size={18}
+                  className="shrink-0 text-blue-600 transition-transform group-open:rotate-180"
+                />
               </summary>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Indexation is influenced by the publisher and search engine systems, so it cannot be guaranteed. We provide the live publication link and help you track the result after delivery.
+                Indexation is influenced by the publisher and search engine
+                systems, so it cannot be guaranteed. We provide the live
+                publication link and help you track the result after delivery.
               </p>
             </details>
             <details className="group py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-slate-900 sm:text-base">
                 Can I request revisions before publication?
-                <ChevronDown size={18} className="shrink-0 text-blue-600 transition-transform group-open:rotate-180" />
+                <ChevronDown
+                  size={18}
+                  className="shrink-0 text-blue-600 transition-transform group-open:rotate-180"
+                />
               </summary>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Yes. Share revision notes during editorial review and the team will confirm what can be adjusted within the selected package and publisher guidelines.
+                Yes. Share revision notes during editorial review and the team
+                will confirm what can be adjusted within the selected package
+                and publisher guidelines.
               </p>
             </details>
             <details className="group py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-slate-900 sm:text-base">
                 What is different about LBC 9 and LBC 10?
-                <ChevronDown size={18} className="shrink-0 text-blue-600 transition-transform group-open:rotate-180" />
+                <ChevronDown
+                  size={18}
+                  className="shrink-0 text-blue-600 transition-transform group-open:rotate-180"
+                />
               </summary>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Higher-tier packages generally offer access to stronger publisher opportunities. Expand each pricing card above to compare the publishers included in the current package configuration.
+                Higher-tier packages generally offer access to stronger
+                publisher opportunities. Expand each pricing card above to
+                compare the publishers included in the current package
+                configuration.
               </p>
             </details>
           </div>
@@ -529,47 +666,127 @@ export default function LandingPage() {
       <section className="bg-teal-700 text-white" aria-label="Footer links">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div>
-            <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold" aria-label="ReleaseMYPR home">
-              <img src={logo} alt="ReleaseMYPR" className="h-10 w-auto max-w-[190px] rounded-lg bg-white px-2 py-1 object-contain object-left" />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-xl font-bold"
+              aria-label="ReleaseMYPR home"
+            >
+              <img
+                src={logo}
+                alt="ReleaseMYPR"
+                className="h-10 w-auto max-w-[190px] rounded-lg bg-white px-2 py-1 object-contain object-left"
+              />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-blue-100">
-              A clearer way to shape, submit, and track your next published idea.
+              A clearer way to shape, submit, and track your next published
+              idea.
             </p>
             <div className="mt-5 grid gap-2 text-sm text-blue-100">
-              <p className="inline-flex min-w-0 items-start gap-2 wrap-break-word"><MapPin className="mt-1 shrink-0" size={15} /> <span>GB-47, Rajdanga Main Road, Sector G, East Kolkata Twp, Kolkata, West Bengal 700107</span></p>
-              <a href="tel:+919876543210" className="inline-flex items-center gap-2 transition hover:text-white"><Phone size={15} /> +91 98765 43210</a>
+              <p className="inline-flex min-w-0 items-start gap-2 wrap-break-word">
+                <MapPin className="mt-1 shrink-0" size={15} />{" "}
+                <span>
+                  GB-47, Rajdanga Main Road, Sector G, East Kolkata Twp,
+                  Kolkata, West Bengal 700107
+                </span>
+              </p>
+              <a
+                href="tel:+919876543210"
+                className="inline-flex items-center gap-2 transition hover:text-white"
+              >
+                <Phone size={15} /> +91 98765 43210
+              </a>
             </div>
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">Explore</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">
+              Explore
+            </p>
             <div className="mt-4 grid gap-3 text-sm font-semibold">
-              <a href="#how-it-works" className="transition hover:text-blue-100">How it works</a>
-              <a href="#pricing" className="transition hover:text-blue-100">Pricing</a>
-              <a href="#testimonials" className="transition hover:text-blue-100">Testimonials</a>
+              <a
+                href="#how-it-works"
+                className="transition hover:text-blue-100"
+              >
+                How it works
+              </a>
+              <a href="#pricing" className="transition hover:text-blue-100">
+                Pricing
+              </a>
+              <a
+                href="#testimonials"
+                className="transition hover:text-blue-100"
+              >
+                Testimonials
+              </a>
             </div>
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">Account</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">
+              Account
+            </p>
             <div className="mt-4 grid gap-3 text-sm font-semibold">
-              <Link to="/login" className="transition hover:text-blue-100">Sign in</Link>
-              <Link to="/register" className="transition hover:text-blue-100">Create account</Link>
+              <Link to="/login" className="transition hover:text-blue-100">
+                Sign in
+              </Link>
+              <Link to="/register" className="transition hover:text-blue-100">
+                Create account
+              </Link>
             </div>
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">Contact & social</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">
+              Contact & social
+            </p>
             <div className="mt-4 grid gap-3 text-sm font-semibold">
-              <a href="mailto:hello@seo-portal.com" className="inline-flex items-center gap-2 transition hover:text-blue-100"><Mail size={16} />Contact us</a>
-              <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 transition hover:text-blue-100"><span className="text-xs font-bold">in</span>LinkedIn</a>
-              <a href="https://www.instagram.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 transition hover:text-blue-100"><span className="text-xs font-bold">ig</span>Instagram</a>
-              <a href="https://x.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 transition hover:text-blue-100"><span className="text-base leading-none">X</span>Follow us</a>
+              <Link
+                to="/contact"
+                className="inline-flex items-center gap-2 transition hover:text-blue-100"
+              >
+                <Mail size={16} />
+                Contact us
+              </Link>
+              <a
+                href="https://www.linkedin.com"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 transition hover:text-blue-100"
+              >
+                <span className="text-xs font-bold">in</span>LinkedIn
+              </a>
+              <a
+                href="https://www.instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 transition hover:text-blue-100"
+              >
+                <span className="text-xs font-bold">ig</span>Instagram
+              </a>
+              <a
+                href="https://x.com"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 transition hover:text-blue-100"
+              >
+                <span className="text-base leading-none">X</span>Follow us
+              </a>
             </div>
           </div>
           <div id="legal">
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">Legal</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-100">
+              Legal
+            </p>
             <div className="mt-4 grid gap-3 text-sm font-semibold">
-              <a href="/privacy-policy" className="transition hover:text-white">Privacy Policy</a>
-              <a href="/terms-of-service" className="transition hover:text-white">Terms of Service</a>
-              <a href="/refund-policy" className="transition hover:text-white">Refund Policy</a>
+              <Link to="/privacy-policy" className="transition hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms-of-service"
+                className="transition hover:text-white"
+              >
+                Terms of Service
+              </Link>
+              <Link to="/payment-policy" className="transition hover:text-white">
+                Payment Policy
+              </Link>
             </div>
           </div>
         </div>
