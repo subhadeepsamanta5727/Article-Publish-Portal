@@ -1,4 +1,4 @@
-const ContactSubmission = require("../models/ContactSubmission");
+const ContactSubmission = require("../Models/ContactSubmission");
 const { sendContactEmail } = require("../config/mailer");
 
 const createContactSubmission = async (req, res, next) => {
